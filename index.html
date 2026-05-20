@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>Spec Verification & Self-Repair — A/B/X/Y Flow</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    --A:#ff8c1a; --B:#b366ff; --X:#4da6ff; --Y:#3ddc84; --R:#7a8294; --F:#ff5a5f; --P:#3ddc84;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  /* top tab bar */
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 130px;min-height:46px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px #4da6ff66;}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+  /* scenario description */
+  .desc{position:absolute;top:118px;left:8px;right:8px;z-index:22;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12.5px;color:var(--muted);line-height:1.4;max-width:none;}
+  /* legend */
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+  /* node popup panel */
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:280px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+  /* nodes */
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:220px;text-align:center;cursor:pointer;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-A{border-color:var(--A);} .tag-A{background:var(--A);}
+  .node-B{border-color:var(--B);} .tag-B{background:var(--B);}
+  .node-X{border-color:var(--X);} .tag-X{background:var(--X);}
+  .node-Y{border-color:var(--Y);} .tag-Y{background:var(--Y);}
+  .node-R{border-color:var(--R);} .tag-R{background:var(--R);}
+  .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
+  .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
+  .dimmed{opacity:.25;}
+  .react-flow__edge.dimmed path{stroke-opacity:.22;}
+  .react-flow__edge.active path{stroke-width:2.6px;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  @media (max-width:600px){
+    .tab{flex:1 1 45%;font-size:12.5px;}
+    .info{max-width:calc(100vw - 16px);}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position } from 'reactflow';
+const h = React.createElement;
+
+/* tag legend:
+   A=git hook  B=orch hook  X=op CLI  Y=agent slash  R=runtime  F=fail  P=pass */
+const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
+
+const NODES = [
+  N('shape',     'Y', '/shape-spec',    400,    0, null, 'Agent slash command. Drafts spec.md and requirements.md from the conversation.'),
+  N('frozen',    'B', 'spec-frozen',    400,   90, null, 'Orchestration hook. Fires when the spec is finalized. Subscribers auto-create the feature branch and scaffold the tasks/ directory.'),
+  N('tasks',     'Y', '/create-tasks',  400,  180, null, 'Agent slash command. Splits the spec into parent tasks and task groups, writes tasks.md.'),
+  N('rubrics',   'Y', '/create-rubrics',400,  270, null, 'Agent slash command. Produces a rubric per task group (rubrics/<group>.md) used by the rubric-verifier later.'),
+  N('orch',      'Y', '/orchestrate',   400,  360, null, 'Agent slash command. Compiles orchestration.yml — the DAG between task groups.'),
+  N('runCli',    'X', 'standards-extractor\norchestrate run', 400, 470, null, 'Operator CLI. The binary humans, cron jobs, and hooks shell into. Spawns the orchestrate runtime.'),
+  N('sched',     'R', 'scheduler picks group', 400, 590, null, 'Runtime. Walks the DAG, picks the next unblocked task group, hands it to an implementer.'),
+  N('impl',      'R', 'implementer agent\n(uses /Y commands)', 400, 700, null, 'Runtime. A backend/frontend-specialist agent. Writes code and tests. Internally drives more [Y] slash commands.'),
+  N('preCommit', 'A', '.git/hooks/pre-commit', 150, 830, null, 'Git hook. The only [A] surface — fires on the developer workstation at commit time. Shells into [X].'),
+  N('verify',    'X', 'standards-extractor\nverify --staged', 150, 940, null, 'Operator CLI invoked by [A]. Runs linters, formatters, and fast static checks against the staged diff.'),
+  N('commit',    'R', 'commit lands',   400,  940, null, 'Runtime. Once [A]+[X] are green, the commit lands and the orchestrate runtime picks up the new SHA.'),
+  N('postImpl',  'B', 'post-implement', 400, 1060, null, 'Orchestration hook. Fires after commit lands. Subscribers tag the PR with the task-group id and post a thread update.'),
+  N('preVer',    'B', 'pre-verify',     400, 1160, null, 'Orchestration hook. Fires before verifiers fan out. Used to warm caches and snapshot baseline metrics for diff scoring.'),
+  N('inline',    'R', 'inline-runner\n(shells /X)',  60, 1280, 150, 'Runtime verifier. Runs shell tools (tests, type-check, security scan) by shelling into [X].'),
+  N('ciTrig',    'R', 'ci-trigger-runner', 245, 1280, 150, 'Runtime verifier. Pushes the commit to an external CI provider via connectors.'),
+  N('conn',      'X', 'connectors\n(gh/gitlab/jenkins/tc)', 245, 1390, 170, 'Operator CLI sub-surface. Pluggable connectors: github-actions, gitlab-ci, jenkins, teamcity. Locked set, more can be added.'),
+  N('rubricV',   'R', 'rubric-verifier\n(agent)',   430, 1280, 150, 'Runtime verifier. A non-deterministic agent that scores the diff against the rubric.md for the group.'),
+  N('observe',   'R', 'observe-runner\n(long-lived)', 615, 1280, 150, 'Runtime verifier. Long-running observer (SonarQube nightly, perf regression suite). Verdict may land hours later.'),
+  N('verdict',   'B', 'verdict-landed', 400, 1530, null, 'Orchestration hook. Fires per verifier as each verdict lands. Subscribers stream green/red dots to a live dashboard.'),
+  N('store',     'R', 'state store',    400, 1620, null, 'Runtime. Event-sourced store of every verdict, hook firing, and gate evaluation. The system of record.'),
+  N('gate',      'R', 'AND gate',       400, 1710, null, 'Runtime. Evaluates terminal-pass = inline ∧ ci-trigger ∧ rubric ∧ observe. Any fail trips the gate.'),
+  N('gateEv',    'B', 'gate-evaluated', 400, 1800, null, 'Orchestration hook. Fires after the AND gate evaluates. Routes to PASS or FAIL. Policy hooks live here.'),
+  N('pass',      'P', 'PASS',           200, 1900, null, 'All four verifiers green. Group is done.'),
+  N('done',      'B', 'task-group-done',200, 1990, null, 'Orchestration hook. Marks the group complete in the state store and writes status to the spec.'),
+  N('next',      'R', 'scheduler advances\nnext group', 200, 2080, null, 'Runtime. Picks the next group in the DAG. If none remain, the spec is complete.'),
+  N('fail',      'F', 'FAIL',           600, 1900, null, 'At least one verifier red. Routes to repair-engine.'),
+  N('preRep',    'B', 'pre-repair',     600, 1990, null, 'Orchestration hook. Caps attempts, snapshots the working tree before repair.'),
+  N('repair',    'R', 'repair-engine',  600, 2080, null, 'Runtime. Re-spawns the implementer agent with the failing verdict as context. Loops back to commit.'),
+  N('postRep',   'B', 'post-repair',    600, 2170, null, 'Orchestration hook. Diffs the repair attempt vs the previous one and posts to a reviewer.'),
+  N('drift',     'B', 'observer-drift', 820, 1530, 160, 'Orchestration hook. Fires async when a long-running observer flips after the DAG already moved on. Re-opens the AND gate.'),
+];
+
+const E = (id, source, target, label) => ({ id, source, target, label });
+const EDGES = [
+  E('e1','shape','frozen'), E('e2','frozen','tasks'), E('e3','tasks','rubrics'),
+  E('e4','rubrics','orch'), E('e5','orch','runCli'), E('e6','runCli','sched'),
+  E('e7','sched','impl'),   E('e8','impl','preCommit','on commit'),
+  E('e9','preCommit','verify'), E('e10','verify','commit','green'),
+  E('e11','commit','postImpl'), E('e12','postImpl','preVer'),
+  E('e13','preVer','inline'), E('e14','preVer','ciTrig'),
+  E('e15','preVer','rubricV'),  E('e16','preVer','observe'),
+  E('e17','ciTrig','conn'),
+  E('e18','inline','verdict'), E('e19','conn','verdict'),
+  E('e20','rubricV','verdict'),E('e21','observe','verdict'),
+  E('e22','verdict','store'), E('e23','store','gate'),
+  E('e24','gate','gateEv'),    E('e25','gateEv','pass'),
+  E('e26','gateEv','fail'),
+  E('e27','pass','done'), E('e28','done','next'),
+  E('e29','fail','preRep'), E('e30','preRep','repair'),
+  E('e31','repair','postRep'), E('e32','postRep','impl','loop back'),
+  E('e33','observe','drift','much later'), E('e34','drift','gate','reopens'),
+];
+
+const setOf = (ids) => new Set(ids);
+const SCENARIOS = {
+  overview: { name:'Overview', sub:'everything', desc:'All surfaces and all edges. Tap any node for what it does.', activeEdges:null },
+  happy:    { name:'Happy path', sub:'all green', desc:'Implementer commits → A→X→commit lands → B-chain fires → four verifiers all green → AND gate passes → group advances.',
+              activeEdges: setOf(['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10','e11','e12','e13','e14','e15','e16','e17','e18','e19','e20','e21','e22','e23','e24','e25','e27','e28']) },
+  fail:     { name:'Fail + repair', sub:'one verifier red', desc:'One verifier fails. gate-evaluated routes to FAIL → pre-repair → repair-engine → post-repair → loops back to implementer.',
+              activeEdges: setOf(['e7','e8','e9','e10','e11','e12','e13','e14','e15','e16','e17','e18','e19','e20','e21','e22','e23','e24','e26','e29','e30','e31','e32']) },
+  drift:    { name:'Observer drift', sub:'late re-open', desc:'DAG already moved on. Hours later observe-runner (e.g. SonarQube nightly) flips red → observer-drift → re-opens the AND gate.',
+              activeEdges: setOf(['e16','e33','e34','e24','e26','e29','e30','e31','e32']) },
+  ci:       { name:'CI sub-path', sub:'connectors only', desc:'Focus on the [X] connectors layer: ci-trigger-runner pushes commits to external CI through the gh-actions / gitlab / jenkins / teamcity connectors.',
+              activeEdges: setOf(['e6','e7','e11','e12','e14','e17','e19','e22','e23','e24']) },
+};
+
+const TAG_COLOR = { A:'#ff8c1a', B:'#b366ff', X:'#4da6ff', Y:'#3ddc84', R:'#7a8294', F:'#ff5a5f', P:'#3ddc84' };
+const TAG_LABEL = { A:'A — git hook', B:'B — orchestration hook', X:'X — operator CLI', Y:'Y — agent /slash', R:'runtime', F:'fail', P:'pass' };
+const TAG_TEXT  = { A:'A', B:'B', X:'X', Y:'Y', R:'rt', F:'FAIL', P:'PASS' };
+
+function FlowNode({ data }) {
+  const cls = 'node-box node-' + data.tag + (data.dimmed ? ' dimmed' : '');
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, data.label.split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(sourceTag, targetTag) {
+  if (sourceTag !== 'R') return TAG_COLOR[sourceTag];
+  if (targetTag !== 'R') return TAG_COLOR[targetTag];
+  return TAG_COLOR.R;
+}
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [selectedId, setSelectedId] = useState(null);
+  const sc = SCENARIOS[scenario];
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
+  const onSelect = (id) => setSelectedId(id);
+
+  const nodes = useMemo(() => NODES.map(n => {
+    const dimmed = sc.activeEdges == null ? false : !nodeIsActive(n.id, sc.activeEdges);
+    return {
+      id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+      data: { tag:n.tag, label:n.label, w:n.w, dimmed, nodeId:n.id, onSelect },
+      draggable: true,
+    };
+  }), [scenario]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const active = sc.activeEdges == null ? true : sc.activeEdges.has(e.id);
+    const col = edgeColor(tagById[e.source], tagById[e.target]);
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: active ? 'active' : 'dimmed',
+      animated: active && sc.activeEdges != null,
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: active ? 2.4 : 1.4 },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [scenario, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>{ setScenario(k); setSelectedId(null); } },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'desc' }, sc.desc),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag tag-'+sel.tag, style:{background:TAG_COLOR[sel.tag]}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', sel.label.replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      h('p', null, sel.info)
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--Y)'}}),' Y agent /slash'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--X)'}}),' X operator CLI'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--A)'}}),' A git hook'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--B)'}}),' B orch hook'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--R)'}}),' runtime'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.22 },
+      minZoom:0.12, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+function nodeIsActive(id, activeEdges) {
+  for (const e of EDGES) {
+    if (activeEdges.has(e.id) && (e.source === id || e.target === id)) return true;
+  }
+  return false;
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
