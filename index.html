@@ -185,11 +185,18 @@ const SCENARIOS = {
     ],
   },
   fail: {
-    name:'Fail + repair', sub:'red → loop → green',
-    desc:'Attempt 1 fails on the rubric. repair-engine loops back to the implementer, then attempt 2 walks the full path again — this time green.',
+    name:'Fail + repair', sub:'full lifecycle → red → loop → green',
+    desc:'Full spec lifecycle ➜ attempt 1 fails on the rubric ➜ repair-engine loops back ➜ attempt 2 walks the full path again, this time green.',
     steps: [
+      // ─── Spec lifecycle (same as happy) ──────────
+      S('Draft spec',                  ['shape'],   []),
+      S('spec-frozen [B] fires',       ['frozen'],  ['e1']),
+      S('Create tasks',                ['tasks'],   ['e2']),
+      S('Create rubrics',              ['rubrics'], ['e3']),
+      S('Orchestrate DAG',             ['orch'],    ['e4']),
+      S('Operator launches [X]',       ['runCli'],  ['e5']),
       // ─── Attempt 1 ────────────────────────────────
-      S('① Scheduler picks group',     ['sched'],   []),
+      S('① Scheduler picks group',     ['sched'],   ['e6']),
       S('① Implementer writes code',   ['impl'],    ['e7']),
       S('① pre-commit [A] fires',      ['preCommit'],['e8']),
       S('① verify --staged [X]',       ['verify'],  ['e9']),
