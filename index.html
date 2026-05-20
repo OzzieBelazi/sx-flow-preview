@@ -10,29 +10,40 @@
     --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
     --txt:#e8ecf3; --muted:#9aa3b2;
     --A:#ff8c1a; --B:#b366ff; --X:#4da6ff; --Y:#3ddc84; --R:#7a8294; --F:#ff5a5f; --P:#3ddc84;
+    --accent:#4da6ff;
   }
   *{box-sizing:border-box}
   html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  /* top tab bar */
   .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
-  .tab{flex:1 1 130px;min-height:46px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab{flex:1 1 130px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
   .tab:active{transform:scale(.97);}
-  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px #4da6ff66;}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
   .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
-  /* scenario description */
-  .desc{position:absolute;top:118px;left:8px;right:8px;z-index:22;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12.5px;color:var(--muted);line-height:1.4;max-width:none;}
-  /* legend */
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--Y),var(--X),var(--B));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
   .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
   .legend .chip{display:inline-flex;align-items:center;gap:5px;}
   .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
-  /* node popup panel */
+
   .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:280px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
   .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
   .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
   .info p{margin:6px 0 0;color:var(--muted);}
   .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
-  /* nodes */
-  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:220px;text-align:center;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:220px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;}
   .node-box:hover{filter:brightness(1.15);}
   .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
   .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
@@ -43,13 +54,24 @@
   .node-R{border-color:var(--R);} .tag-R{background:var(--R);}
   .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
   .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
-  .dimmed{opacity:.25;}
-  .react-flow__edge.dimmed path{stroke-opacity:.22;}
-  .react-flow__edge.active path{stroke-width:2.6px;}
+  .node-pending{opacity:.25;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  .node-done::after{content:"✓";position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--P);color:#0f1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .node-box{position:relative;}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.18;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
   .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
-  @media (max-width:600px){
-    .tab{flex:1 1 45%;font-size:12.5px;}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
     .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
   }
 </style>
 </head>
@@ -66,46 +88,44 @@
 }
 </script>
 <script type="module">
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position } from 'reactflow';
 const h = React.createElement;
 
-/* tag legend:
-   A=git hook  B=orch hook  X=op CLI  Y=agent slash  R=runtime  F=fail  P=pass */
 const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
 
 const NODES = [
   N('shape',     'Y', '/shape-spec',    400,    0, null, 'Agent slash command. Drafts spec.md and requirements.md from the conversation.'),
   N('frozen',    'B', 'spec-frozen',    400,   90, null, 'Orchestration hook. Fires when the spec is finalized. Subscribers auto-create the feature branch and scaffold the tasks/ directory.'),
   N('tasks',     'Y', '/create-tasks',  400,  180, null, 'Agent slash command. Splits the spec into parent tasks and task groups, writes tasks.md.'),
-  N('rubrics',   'Y', '/create-rubrics',400,  270, null, 'Agent slash command. Produces a rubric per task group (rubrics/<group>.md) used by the rubric-verifier later.'),
+  N('rubrics',   'Y', '/create-rubrics',400,  270, null, 'Agent slash command. Produces a rubric per task group used by the rubric-verifier later.'),
   N('orch',      'Y', '/orchestrate',   400,  360, null, 'Agent slash command. Compiles orchestration.yml — the DAG between task groups.'),
   N('runCli',    'X', 'standards-extractor\norchestrate run', 400, 470, null, 'Operator CLI. The binary humans, cron jobs, and hooks shell into. Spawns the orchestrate runtime.'),
   N('sched',     'R', 'scheduler picks group', 400, 590, null, 'Runtime. Walks the DAG, picks the next unblocked task group, hands it to an implementer.'),
-  N('impl',      'R', 'implementer agent\n(uses /Y commands)', 400, 700, null, 'Runtime. A backend/frontend-specialist agent. Writes code and tests. Internally drives more [Y] slash commands.'),
+  N('impl',      'R', 'implementer agent\n(uses /Y commands)', 400, 700, null, 'Runtime. Backend/frontend-specialist agent. Writes code and tests. Internally drives more [Y] commands.'),
   N('preCommit', 'A', '.git/hooks/pre-commit', 150, 830, null, 'Git hook. The only [A] surface — fires on the developer workstation at commit time. Shells into [X].'),
-  N('verify',    'X', 'standards-extractor\nverify --staged', 150, 940, null, 'Operator CLI invoked by [A]. Runs linters, formatters, and fast static checks against the staged diff.'),
+  N('verify',    'X', 'standards-extractor\nverify --staged', 150, 940, null, 'Operator CLI invoked by [A]. Runs linters, formatters, fast static checks against staged diff.'),
   N('commit',    'R', 'commit lands',   400,  940, null, 'Runtime. Once [A]+[X] are green, the commit lands and the orchestrate runtime picks up the new SHA.'),
-  N('postImpl',  'B', 'post-implement', 400, 1060, null, 'Orchestration hook. Fires after commit lands. Subscribers tag the PR with the task-group id and post a thread update.'),
-  N('preVer',    'B', 'pre-verify',     400, 1160, null, 'Orchestration hook. Fires before verifiers fan out. Used to warm caches and snapshot baseline metrics for diff scoring.'),
+  N('postImpl',  'B', 'post-implement', 400, 1060, null, 'Orchestration hook. Fires after commit lands. Tags PR with task-group id, posts thread update.'),
+  N('preVer',    'B', 'pre-verify',     400, 1160, null, 'Orchestration hook. Fires before verifiers fan out. Warms caches, snapshots baseline metrics.'),
   N('inline',    'R', 'inline-runner\n(shells /X)',  60, 1280, 150, 'Runtime verifier. Runs shell tools (tests, type-check, security scan) by shelling into [X].'),
   N('ciTrig',    'R', 'ci-trigger-runner', 245, 1280, 150, 'Runtime verifier. Pushes the commit to an external CI provider via connectors.'),
-  N('conn',      'X', 'connectors\n(gh/gitlab/jenkins/tc)', 245, 1390, 170, 'Operator CLI sub-surface. Pluggable connectors: github-actions, gitlab-ci, jenkins, teamcity. Locked set, more can be added.'),
-  N('rubricV',   'R', 'rubric-verifier\n(agent)',   430, 1280, 150, 'Runtime verifier. A non-deterministic agent that scores the diff against the rubric.md for the group.'),
-  N('observe',   'R', 'observe-runner\n(long-lived)', 615, 1280, 150, 'Runtime verifier. Long-running observer (SonarQube nightly, perf regression suite). Verdict may land hours later.'),
-  N('verdict',   'B', 'verdict-landed', 400, 1530, null, 'Orchestration hook. Fires per verifier as each verdict lands. Subscribers stream green/red dots to a live dashboard.'),
-  N('store',     'R', 'state store',    400, 1620, null, 'Runtime. Event-sourced store of every verdict, hook firing, and gate evaluation. The system of record.'),
-  N('gate',      'R', 'AND gate',       400, 1710, null, 'Runtime. Evaluates terminal-pass = inline ∧ ci-trigger ∧ rubric ∧ observe. Any fail trips the gate.'),
-  N('gateEv',    'B', 'gate-evaluated', 400, 1800, null, 'Orchestration hook. Fires after the AND gate evaluates. Routes to PASS or FAIL. Policy hooks live here.'),
+  N('conn',      'X', 'connectors\n(gh/gitlab/jenkins/tc)', 245, 1390, 170, '[X] sub-surface. Pluggable connectors: github-actions, gitlab-ci, jenkins, teamcity.'),
+  N('rubricV',   'R', 'rubric-verifier\n(agent)',   430, 1280, 150, 'Runtime verifier. Non-deterministic agent that scores the diff against rubric.md for the group.'),
+  N('observe',   'R', 'observe-runner\n(long-lived)', 615, 1280, 150, 'Runtime verifier. Long-running observer (SonarQube nightly, perf regression). Verdict may land hours later.'),
+  N('verdict',   'B', 'verdict-landed', 400, 1530, null, 'Orchestration hook. Fires per verifier as each verdict lands. Streams green/red dots live.'),
+  N('store',     'R', 'state store',    400, 1620, null, 'Runtime. Event-sourced store of every verdict, hook firing, gate evaluation.'),
+  N('gate',      'R', 'AND gate',       400, 1710, null, 'Runtime. Evaluates terminal-pass = inline ∧ ci-trigger ∧ rubric ∧ observe.'),
+  N('gateEv',    'B', 'gate-evaluated', 400, 1800, null, 'Orchestration hook. Fires after AND gate. Routes to PASS or FAIL. Policy hooks live here.'),
   N('pass',      'P', 'PASS',           200, 1900, null, 'All four verifiers green. Group is done.'),
-  N('done',      'B', 'task-group-done',200, 1990, null, 'Orchestration hook. Marks the group complete in the state store and writes status to the spec.'),
-  N('next',      'R', 'scheduler advances\nnext group', 200, 2080, null, 'Runtime. Picks the next group in the DAG. If none remain, the spec is complete.'),
+  N('done',      'B', 'task-group-done',200, 1990, null, 'Orchestration hook. Marks group complete in state store, writes status to spec.'),
+  N('next',      'R', 'scheduler advances\nnext group', 200, 2080, null, 'Runtime. Picks next group in DAG. If none remain, spec is complete.'),
   N('fail',      'F', 'FAIL',           600, 1900, null, 'At least one verifier red. Routes to repair-engine.'),
-  N('preRep',    'B', 'pre-repair',     600, 1990, null, 'Orchestration hook. Caps attempts, snapshots the working tree before repair.'),
-  N('repair',    'R', 'repair-engine',  600, 2080, null, 'Runtime. Re-spawns the implementer agent with the failing verdict as context. Loops back to commit.'),
-  N('postRep',   'B', 'post-repair',    600, 2170, null, 'Orchestration hook. Diffs the repair attempt vs the previous one and posts to a reviewer.'),
-  N('drift',     'B', 'observer-drift', 820, 1530, 160, 'Orchestration hook. Fires async when a long-running observer flips after the DAG already moved on. Re-opens the AND gate.'),
+  N('preRep',    'B', 'pre-repair',     600, 1990, null, 'Orchestration hook. Caps attempts, snapshots working tree before repair.'),
+  N('repair',    'R', 'repair-engine',  600, 2080, null, 'Runtime. Re-spawns implementer with failing verdict as context. Loops back to commit.'),
+  N('postRep',   'B', 'post-repair',    600, 2170, null, 'Orchestration hook. Diffs repair attempt vs previous, posts to reviewer.'),
+  N('drift',     'B', 'observer-drift', 820, 1530, 160, 'Orchestration hook. Fires async when a long-running observer flips after DAG moved on. Re-opens AND gate.'),
 ];
 
 const E = (id, source, target, label) => ({ id, source, target, label });
@@ -129,17 +149,99 @@ const EDGES = [
   E('e33','observe','drift','much later'), E('e34','drift','gate','reopens'),
 ];
 
-const setOf = (ids) => new Set(ids);
+const S = (label, nodes, edges, focus) => ({ label, nodes, edges, focus });
 const SCENARIOS = {
-  overview: { name:'Overview', sub:'everything', desc:'All surfaces and all edges. Tap any node for what it does.', activeEdges:null },
-  happy:    { name:'Happy path', sub:'all green', desc:'Implementer commits → A→X→commit lands → B-chain fires → four verifiers all green → AND gate passes → group advances.',
-              activeEdges: setOf(['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10','e11','e12','e13','e14','e15','e16','e17','e18','e19','e20','e21','e22','e23','e24','e25','e27','e28']) },
-  fail:     { name:'Fail + repair', sub:'one verifier red', desc:'One verifier fails. gate-evaluated routes to FAIL → pre-repair → repair-engine → post-repair → loops back to implementer.',
-              activeEdges: setOf(['e7','e8','e9','e10','e11','e12','e13','e14','e15','e16','e17','e18','e19','e20','e21','e22','e23','e24','e26','e29','e30','e31','e32']) },
-  drift:    { name:'Observer drift', sub:'late re-open', desc:'DAG already moved on. Hours later observe-runner (e.g. SonarQube nightly) flips red → observer-drift → re-opens the AND gate.',
-              activeEdges: setOf(['e16','e33','e34','e24','e26','e29','e30','e31','e32']) },
-  ci:       { name:'CI sub-path', sub:'connectors only', desc:'Focus on the [X] connectors layer: ci-trigger-runner pushes commits to external CI through the gh-actions / gitlab / jenkins / teamcity connectors.',
-              activeEdges: setOf(['e6','e7','e11','e12','e14','e17','e19','e22','e23','e24']) },
+  overview: {
+    name:'Overview', sub:'everything',
+    desc:'All surfaces and edges. Tap a node to inspect it. Pick another scenario, then ▶ Play, to step through a real run.',
+    steps: null,
+  },
+  happy: {
+    name:'Happy path', sub:'all green',
+    desc:'A normal run: spec ➜ commit ➜ all four verifiers pass ➜ gate passes ➜ next group.',
+    steps: [
+      S('Draft spec',            ['shape'],   []),
+      S('spec-frozen [B] fires', ['frozen'],  ['e1']),
+      S('Create tasks',          ['tasks'],   ['e2']),
+      S('Create rubrics',        ['rubrics'], ['e3']),
+      S('Orchestrate DAG',       ['orch'],    ['e4']),
+      S('Operator launches [X]', ['runCli'],  ['e5']),
+      S('Scheduler picks group', ['sched'],   ['e6']),
+      S('Implementer writes code',['impl'],   ['e7']),
+      S('pre-commit [A] fires',  ['preCommit'],['e8']),
+      S('verify --staged [X] runs',['verify'],['e9']),
+      S('Commit lands',          ['commit'],  ['e10']),
+      S('post-implement [B]',    ['postImpl'],['e11']),
+      S('pre-verify [B]',        ['preVer'],  ['e12']),
+      S('Verifiers fan out',     ['inline','ciTrig','rubricV','observe'], ['e13','e14','e15','e16']),
+      S('CI connectors [X]',     ['conn'],    ['e17']),
+      S('Verdicts arrive (all green)', ['verdict'], ['e18','e19','e20','e21']),
+      S('State store',           ['store'],   ['e22']),
+      S('AND gate evaluates',    ['gate'],    ['e23']),
+      S('gate-evaluated [B]',    ['gateEv'],  ['e24']),
+      S('PASS',                  ['pass'],    ['e25']),
+      S('task-group-done [B]',   ['done'],    ['e27']),
+      S('Scheduler advances',    ['next'],    ['e28']),
+    ],
+  },
+  fail: {
+    name:'Fail + repair', sub:'one verifier red',
+    desc:'Same path until the gate — then one verifier is red, repair-engine loops back to the implementer.',
+    steps: [
+      S('Scheduler picks group', ['sched'],   []),
+      S('Implementer writes code',['impl'],   ['e7']),
+      S('pre-commit [A] fires',  ['preCommit'],['e8']),
+      S('verify --staged [X]',   ['verify'],  ['e9']),
+      S('Commit lands',          ['commit'],  ['e10']),
+      S('post-implement [B]',    ['postImpl'],['e11']),
+      S('pre-verify [B]',        ['preVer'],  ['e12']),
+      S('Verifiers fan out',     ['inline','ciTrig','rubricV','observe'], ['e13','e14','e15','e16']),
+      S('CI connectors [X]',     ['conn'],    ['e17']),
+      S('Verdicts arrive (rubric red)', ['verdict'], ['e18','e19','e20','e21']),
+      S('State store',           ['store'],   ['e22']),
+      S('AND gate trips',        ['gate'],    ['e23']),
+      S('gate-evaluated [B]',    ['gateEv'],  ['e24']),
+      S('FAIL',                  ['fail'],    ['e26']),
+      S('pre-repair [B]',        ['preRep'],  ['e29']),
+      S('repair-engine',         ['repair'],  ['e30']),
+      S('post-repair [B]',       ['postRep'], ['e31']),
+      S('Loop back to implementer', ['impl'], ['e32']),
+    ],
+  },
+  drift: {
+    name:'Observer drift', sub:'late re-open',
+    desc:'DAG already moved on. Hours later observe-runner flips red, observer-drift fires, AND gate re-opens.',
+    steps: [
+      S('observe-runner running', ['observe'], []),
+      S('Long after — observer flips red', ['observe'], []),
+      S('observer-drift [B] fires', ['drift'], ['e33']),
+      S('Re-enter AND gate',      ['gate'],    ['e34']),
+      S('gate-evaluated [B]',     ['gateEv'],  ['e24']),
+      S('FAIL',                   ['fail'],    ['e26']),
+      S('pre-repair [B]',         ['preRep'],  ['e29']),
+      S('repair-engine',          ['repair'],  ['e30']),
+      S('post-repair [B]',        ['postRep'], ['e31']),
+      S('Loop back to implementer',['impl'],   ['e32']),
+    ],
+  },
+  ci: {
+    name:'CI sub-path', sub:'connectors only',
+    desc:'Focus on the [X] connectors layer — how external CI plugs in.',
+    steps: [
+      S('Operator launches [X]', ['runCli'], ['e5']),
+      S('Scheduler picks group', ['sched'],  ['e6']),
+      S('Implementer commits',   ['impl'],   ['e7']),
+      S('Commit lands',          ['commit'], []),
+      S('post-implement [B]',    ['postImpl'],['e11']),
+      S('pre-verify [B]',        ['preVer'], ['e12']),
+      S('ci-trigger-runner',     ['ciTrig'], ['e14']),
+      S('Connectors [X] → external CI', ['conn'], ['e17']),
+      S('Verdict via webhook',   ['verdict'], ['e19']),
+      S('State store',           ['store'],  ['e22']),
+      S('AND gate',              ['gate'],   ['e23']),
+      S('gate-evaluated [B]',    ['gateEv'], ['e24']),
+    ],
+  },
 };
 
 const TAG_COLOR = { A:'#ff8c1a', B:'#b366ff', X:'#4da6ff', Y:'#3ddc84', R:'#7a8294', F:'#ff5a5f', P:'#3ddc84' };
@@ -147,7 +249,8 @@ const TAG_LABEL = { A:'A — git hook', B:'B — orchestration hook', X:'X — o
 const TAG_TEXT  = { A:'A', B:'B', X:'X', Y:'Y', R:'rt', F:'FAIL', P:'PASS' };
 
 function FlowNode({ data }) {
-  const cls = 'node-box node-' + data.tag + (data.dimmed ? ' dimmed' : '');
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
   const tagCls = 'node-tag tag-' + data.tag;
   return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
     h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
@@ -166,35 +269,91 @@ function edgeColor(sourceTag, targetTag) {
 
 function App() {
   const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);          // -1 = idle; 0..steps-1 = current step
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1200);      // ms per step
   const [selectedId, setSelectedId] = useState(null);
   const sc = SCENARIOS[scenario];
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
   const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
-  const onSelect = (id) => setSelectedId(id);
 
-  const nodes = useMemo(() => NODES.map(n => {
-    const dimmed = sc.activeEdges == null ? false : !nodeIsActive(n.id, sc.activeEdges);
-    return {
-      id: n.id, type:'flow', position:{ x:n.x, y:n.y },
-      data: { tag:n.tag, label:n.label, w:n.w, dimmed, nodeId:n.id, onSelect },
-      draggable: true,
-    };
-  }), [scenario]);
+  // reset on scenario change
+  useEffect(() => { setStep(-1); setPlaying(false); }, [scenario]);
+
+  // playback timer
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  // compute per-id state
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      // overview — everything visible (active-without-pulse), nothing dimmed
+      NODES.forEach(n => ns[n.id] = 'done'); // 'done' = bright, no pulse, ✓ would distract — turn off
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps]);
+
+  // for overview, suppress the ✓ badge by remapping to 'visible'
+  const visualNodeState = (id) => {
+    if (!hasSteps) return 'visible';
+    return nodeState[id];
+  };
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps]);
 
   const edges = useMemo(() => EDGES.map(e => {
-    const active = sc.activeEdges == null ? true : sc.activeEdges.has(e.id);
+    const st = edgeState[e.id];
     const col = edgeColor(tagById[e.source], tagById[e.target]);
     return {
       id:e.id, source:e.source, target:e.target, label:e.label,
-      className: active ? 'active' : 'dimmed',
-      animated: active && sc.activeEdges != null,
+      className: st,
+      animated: st === 'active',
       markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
-      style:{ stroke:col, strokeWidth: active ? 2.4 : 1.4 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4) },
       labelStyle:{ fill:'#e8ecf3', fontSize:10 },
       labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
     };
-  }), [scenario, tagById]);
+  }), [edgeState, tagById]);
 
   const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this scenario.' : `${sc.steps[step].label}`);
 
   return h(React.Fragment, null,
     h('div', { className:'tabs' },
@@ -204,7 +363,30 @@ function App() {
         )
       )
     ),
-    h('div', { className:'desc' }, sc.desc),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2000},'0.5×'),
+          h('option',{value:1200},'1×'),
+          h('option',{value:700}, '2×'),
+          h('option',{value:400}, '3×'),
+        ),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
     sel && h('div', { className:'info' },
       h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
       h('h4', null,
@@ -234,13 +416,6 @@ function App() {
       h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
     )
   );
-}
-
-function nodeIsActive(id, activeEdges) {
-  for (const e of EDGES) {
-    if (activeEdges.has(e.id) && (e.source === id || e.target === id)) return true;
-  }
-  return false;
 }
 
 createRoot(document.getElementById('root')).render(
