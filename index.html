@@ -90,7 +90,7 @@
 <script type="module">
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
 const h = React.createElement;
 
 const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
@@ -185,27 +185,44 @@ const SCENARIOS = {
     ],
   },
   fail: {
-    name:'Fail + repair', sub:'one verifier red',
-    desc:'Same path until the gate — then one verifier is red, repair-engine loops back to the implementer.',
+    name:'Fail + repair', sub:'red → loop → green',
+    desc:'Attempt 1 fails on the rubric. repair-engine loops back to the implementer, then attempt 2 walks the full path again — this time green.',
     steps: [
-      S('Scheduler picks group', ['sched'],   []),
-      S('Implementer writes code',['impl'],   ['e7']),
-      S('pre-commit [A] fires',  ['preCommit'],['e8']),
-      S('verify --staged [X]',   ['verify'],  ['e9']),
-      S('Commit lands',          ['commit'],  ['e10']),
-      S('post-implement [B]',    ['postImpl'],['e11']),
-      S('pre-verify [B]',        ['preVer'],  ['e12']),
-      S('Verifiers fan out',     ['inline','ciTrig','rubricV','observe'], ['e13','e14','e15','e16']),
-      S('CI connectors [X]',     ['conn'],    ['e17']),
-      S('Verdicts arrive (rubric red)', ['verdict'], ['e18','e19','e20','e21']),
-      S('State store',           ['store'],   ['e22']),
-      S('AND gate trips',        ['gate'],    ['e23']),
-      S('gate-evaluated [B]',    ['gateEv'],  ['e24']),
-      S('FAIL',                  ['fail'],    ['e26']),
-      S('pre-repair [B]',        ['preRep'],  ['e29']),
-      S('repair-engine',         ['repair'],  ['e30']),
-      S('post-repair [B]',       ['postRep'], ['e31']),
-      S('Loop back to implementer', ['impl'], ['e32']),
+      // ─── Attempt 1 ────────────────────────────────
+      S('① Scheduler picks group',     ['sched'],   []),
+      S('① Implementer writes code',   ['impl'],    ['e7']),
+      S('① pre-commit [A] fires',      ['preCommit'],['e8']),
+      S('① verify --staged [X]',       ['verify'],  ['e9']),
+      S('① Commit lands',              ['commit'],  ['e10']),
+      S('① post-implement [B]',        ['postImpl'],['e11']),
+      S('① pre-verify [B]',            ['preVer'],  ['e12']),
+      S('① Verifiers fan out',         ['inline','ciTrig','rubricV','observe'], ['e13','e14','e15','e16']),
+      S('① CI connectors [X]',         ['conn'],    ['e17']),
+      S('① Verdicts — rubric red ✕',   ['verdict'], ['e18','e19','e20','e21']),
+      S('① State store',               ['store'],   ['e22']),
+      S('① AND gate trips',            ['gate'],    ['e23']),
+      S('① gate-evaluated [B]',        ['gateEv'],  ['e24']),
+      S('① FAIL ✕',                    ['fail'],    ['e26']),
+      S('① pre-repair [B]',            ['preRep'],  ['e29']),
+      S('① repair-engine',             ['repair'],  ['e30']),
+      S('① post-repair [B]',           ['postRep'], ['e31']),
+      S('↩ Loop back to implementer',  ['impl'],    ['e32']),
+      // ─── Attempt 2 (retry) ────────────────────────
+      S('② Implementer applies fix',   ['impl'],    []),
+      S('② pre-commit [A]',            ['preCommit'],['e8']),
+      S('② verify --staged [X]',       ['verify'],  ['e9']),
+      S('② Commit lands (new SHA)',    ['commit'],  ['e10']),
+      S('② post-implement [B]',        ['postImpl'],['e11']),
+      S('② pre-verify [B]',            ['preVer'],  ['e12']),
+      S('② Verifiers fan out',         ['inline','ciTrig','rubricV','observe'], ['e13','e14','e15','e16']),
+      S('② CI connectors [X]',         ['conn'],    ['e17']),
+      S('② Verdicts — all green ✓',    ['verdict'], ['e18','e19','e20','e21']),
+      S('② State store',               ['store'],   ['e22']),
+      S('② AND gate',                  ['gate'],    ['e23']),
+      S('② gate-evaluated [B]',        ['gateEv'],  ['e24']),
+      S('② PASS ✓',                    ['pass'],    ['e25']),
+      S('② task-group-done [B]',       ['done'],    ['e27']),
+      S('② Scheduler advances',        ['next'],    ['e28']),
     ],
   },
   drift: {
@@ -273,6 +290,8 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1200);      // ms per step
   const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
   const sc = SCENARIOS[scenario];
   const hasSteps = !!sc.steps;
   const total = hasSteps ? sc.steps.length : 0;
@@ -288,6 +307,19 @@ function App() {
     const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
     return () => clearTimeout(t);
   }, [playing, step, total, hasSteps, speed]);
+
+  // auto-pan to follow active step
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 70; sy += nd.y + 30; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 600, zoom: 0.85 });
+  }, [step, scenario, follow, hasSteps, setCenter]);
 
   // compute per-id state
   const { nodeState, edgeState } = useMemo(() => {
@@ -378,6 +410,7 @@ function App() {
           h('option',{value:700}, '2×'),
           h('option',{value:400}, '3×'),
         ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
         h('div', { style:{flex:1,minWidth:80} }),
         hasSteps && h('div', { className:'step-label' },
           h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
