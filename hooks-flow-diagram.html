@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>Orchestration Hooks [B] — Mode, Discovery, Lifecycle</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    --RT:#7a8294; --EV:#b366ff; --DIR:#9c6cf5; --SUB:#4da6ff; --ADV:#3ddc84; --BLK:#ffb454; --F:#ff5a5f; --P:#3ddc84; --DI:#ff8c1a;
+    --accent:#4da6ff;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 130px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--ADV),var(--SUB),var(--EV));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:300px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info code{background:var(--panel2);padding:1px 5px;border-radius:3px;font-size:11.5px;}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:240px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;position:relative;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-sub{font-size:10.5px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:3px;}
+  .node-RT{border-color:var(--RT);} .tag-RT{background:var(--RT);}
+  .node-EV{border-color:var(--EV);} .tag-EV{background:var(--EV);}
+  .node-DIR{border-color:var(--DIR);} .tag-DIR{background:var(--DIR);}
+  .node-SUB{border-color:var(--SUB);} .tag-SUB{background:var(--SUB);}
+  .node-ADV{border-color:var(--ADV);} .tag-ADV{background:var(--ADV);}
+  .node-BLK{border-color:var(--BLK);} .tag-BLK{background:var(--BLK);}
+  .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
+  .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
+  .node-DI{border-color:var(--DI);} .tag-DI{background:var(--DI);}
+  .node-pending{opacity:.22;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  .node-done::after{content:"✓";position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--P);color:#0f1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.18;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
+  .react-flow__edge.killed path{stroke-dasharray:5 4;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
+    .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
+const h = React.createElement;
+
+const N = (id, tag, label, x, y, w, info, sub) => ({ id, tag, label, x, y, w, info, sub });
+
+// ============================================================
+// SCENARIO 1: OVERVIEW — the 9 events along the orchestrate lifecycle
+// ============================================================
+const NODES_OVERVIEW = [
+  N('rt', 'RT', 'orchestrate runtime', 380, 0, 200, 'The async runtime that drives a task-group. Fires named events at every state transition.'),
+  N('e1', 'EV', 'spec-frozen', 380, 100, null, 'Fires when /shape-spec output stabilizes and is committed. Default subscribers create feature branch + scaffold tasks/.', '60s timeout · blocking default'),
+  N('e2', 'EV', 'post-implement', 380, 200, null, 'Fires when an implementer commit lands and a new SHA is visible. Subscribers tag the PR, post Slack updates.', '30s · blocking default'),
+  N('e3', 'EV', 'pre-verify', 380, 300, null, 'Just before the four verifier runners fan out. Warm caches, snapshot baseline metrics.', '30s · blocking default'),
+  N('e4', 'EV', 'verdict-landed', 380, 400, null, 'Fires ONCE PER VERIFIER as each verdict lands. Stream live dots, early-fail the gate.', '15s · hot path · blocking default'),
+  N('e5', 'EV', 'gate-evaluated', 380, 500, null, 'After AND gate sums all four verdicts. Policy routing lives here.', '15s · hot path · blocking default'),
+  N('e6', 'EV', 'pre-repair', 380, 600, null, 'Before repair-engine spawns a new attempt. Cap attempts, snapshot tree, PagerDuty.', '30s · blocking default'),
+  N('e7', 'EV', 'post-repair', 380, 700, null, 'After repair attempt commits. Diff vs last attempt, cost tracking.', '30s · blocking default'),
+  N('e8', 'EV', 'task-group-done', 380, 800, null, 'Group terminally passes and scheduler advances. Write status, notify watchers.', '60s · blocking default'),
+  N('e9', 'EV', 'observer-drift', 650, 400, 160, 'Async event — long-running observer flips AFTER the DAG already moved on. Re-opens the AND gate.', '60s · blocking default'),
+  // sample subscriber pool to convey shape
+  N('sub_a', 'BLK', '10-create-branch.sh', 100, 100, 170, 'Default shipped hook. Creates feature/<spec-slug>. @hook-mode: blocking.', 'blocking · 60s'),
+  N('sub_b', 'BLK', '10-tag-pr.sh', 100, 200, 170, 'Default shipped hook. Adds task-group:<id> label to the open PR.', 'blocking · 30s'),
+  N('sub_c', 'ADV', '20-slack-notify.sh', 100, 400, 170, 'Notification hook — declared advisory so a flaky webhook does not break the run.', 'advisory · 5s'),
+  N('sub_d', 'BLK', '10-route.sh', 100, 500, 170, 'Default. Routes pass→advance / fail→repair. Policy gate, blocking by design.', 'blocking · 15s'),
+];
+
+const E = (id, s, t, label, kind) => ({ id, source:s, target:t, label, kind: kind || 'normal' });
+const EDGES_OVERVIEW = [
+  E('o1','rt','e1'), E('o2','e1','e2'), E('o3','e2','e3'), E('o4','e3','e4'),
+  E('o5','e4','e5'), E('o6','e5','e6'), E('o7','e6','e7'), E('o8','e7','e8'),
+  E('o9','rt','e9','async'),
+  E('os1','e1','sub_a','fan-out'),
+  E('os2','e2','sub_b','fan-out'),
+  E('os3','e4','sub_c','fan-out'),
+  E('os4','e5','sub_d','fan-out'),
+];
+
+// ============================================================
+// SCENARIO 2: ANATOMY — one event fires, discovery+dispatch chain
+// ============================================================
+const NODES_ANATOMY = [
+  N('a_rt',    'RT',  'orchestrate runtime', 380, 0, 200, 'Emits a named event with a JSON payload at every state transition.'),
+  N('a_fire',  'EV',  'verdict-landed fires', 380, 100, 200, 'Per-verifier event. Payload: { verifier, verdict, score, failing_criteria, evidence_paths }', '15s · hot path'),
+  N('a_disc',  'RT',  'discovery walk', 380, 200, 200, 'Two-level lookup. Repo-local first, user-level after. Lexical order. Executable bit required.'),
+  N('a_repo',  'RT',  '<repo>/.standards-extractor/hooks/verdict-landed/', 80, 320, 290, 'Repo-local subscriber dir. Listed before user-level dir.'),
+  N('a_user',  'RT',  '~/.config/standards-extractor/hooks/verdict-landed/', 80, 420, 290, 'User-level subscriber dir. Runs after repo-local (unless repo-local empty for this event).'),
+  N('a_10',    'BLK', '10-stream-dot.ts',     440, 320, 180, 'First by lexical order. Streams a live green/red dot to the dashboard.', 'blocking · 15s'),
+  N('a_20',    'ADV', '20-slack-notify.sh',   440, 420, 180, 'Notification. Advisory — failure logs but does not abort the event.', 'advisory · 5s'),
+  N('a_30',    'BLK', '30-early-fail.py',     440, 520, 180, 'Policy hook. May emit a structured directive to early-fail the gate.', 'blocking · 15s'),
+  N('a_disp',  'RT',  'dispatch each subscriber', 380, 630, 220, 'For each: spawn subprocess → pipe JSON payload to stdin → set env vars → wait ≤ timeout → inspect exit code.'),
+  N('a_env',   'RT',  'env: SX_EVENT, SX_RUN_ID,\nSX_COMMIT_SHA, SX_REPO_ROOT,\nSX_PAYLOAD_FILE, SX_API_TOKEN', 60, 630, 270, 'Every subscriber gets the same env surface. Token is scoped + short-lived (TTL = timeout + grace).'),
+  N('a_exit',  'RT',  'inspect exit code',     380, 760, 200, '0 = continue · 1 = abort event (blocking) / log+continue (advisory) · 2 = soft skip · 78 = hard stop regardless of mode'),
+  N('a_done',  'P',   'event complete',        380, 860, 200, 'All subscribers ran (or were skipped). Runtime moves on to the next state transition.'),
+];
+
+const EDGES_ANATOMY = [
+  E('a1','a_rt','a_fire'),
+  E('a2','a_fire','a_disc'),
+  E('a3','a_disc','a_repo','1st'),
+  E('a4','a_disc','a_user','2nd'),
+  E('a5','a_repo','a_10','lex order'),
+  E('a6','a_10','a_20'),
+  E('a7','a_20','a_30'),
+  E('a8','a_30','a_disp'),
+  E('a8b','a_env','a_disp','env'),
+  E('a9','a_disp','a_exit'),
+  E('a10','a_exit','a_done','all 0'),
+];
+
+// ============================================================
+// SCENARIO 3: BLOCKING FAILS — exit 1 aborts event + orchestration
+// ============================================================
+const NODES_BLOCK = [
+  N('b_rt',    'RT',  'orchestrate runtime',  380, 0, 200, ''),
+  N('b_fire',  'EV',  'gate-evaluated fires', 380, 90, 200, 'AND gate has evaluated. Policy router runs here.'),
+  N('b_10',    'BLK', '10-route.sh',          380, 200, 180, '@hook-mode: blocking · default · exits 1 because of an internal lookup failure.', 'blocking · 15s'),
+  N('b_pipe',  'RT',  'stdin payload sent',   380, 290, 200, 'JSON: { verdicts:{...}, result, failing, pending }'),
+  N('b_exit1', 'F',   'exit 1',               380, 380, 160, 'Hook returned non-zero. In blocking mode this signals abort.'),
+  N('b_abort', 'F',   'abort event',          380, 470, 180, 'Runtime stops dispatching further subscribers for this event.'),
+  N('b_halt',  'F',   'abort orchestration',  380, 560, 200, 'Blocking failure escalates: the whole orchestrate run halts. Subsequent state transitions do not happen.'),
+  N('b_20',    'BLK', '20-notify.sh\n(NEVER runs)', 100, 380, 170, 'Later subscribers in the chain are skipped — the event aborted before reaching them.', 'queued · skipped'),
+  N('b_human', 'F',   'human escalation',     380, 660, 200, 'Blocking abort surfaces to ops. Common with policy gates that say "do not proceed".'),
+];
+
+const EDGES_BLOCK = [
+  E('b1','b_rt','b_fire'),
+  E('b2','b_fire','b_10'),
+  E('b3','b_10','b_pipe'),
+  E('b4','b_pipe','b_exit1','non-zero','fail'),
+  E('b5','b_exit1','b_abort','blocking','fail'),
+  E('b6','b_abort','b_halt','escalate','fail'),
+  E('b7','b_abort','b_20','skipped','killed'),
+  E('b8','b_halt','b_human','','fail'),
+];
+
+// ============================================================
+// SCENARIO 4: ADVISORY FAILS — same exit 1, log + continue
+// ============================================================
+const NODES_ADV = [
+  N('v_rt',    'RT',  'orchestrate runtime',  380, 0, 200, ''),
+  N('v_fire',  'EV',  'verdict-landed fires', 380, 90, 200, ''),
+  N('v_10',    'BLK', '10-stream-dot.ts',     380, 200, 180, 'Runs first, exits 0. Continue.', 'blocking · 15s'),
+  N('v_20',    'ADV', '20-slack-notify.sh',   380, 300, 180, '@hook-mode: advisory · declared so a flaky webhook does not break the run.', 'advisory · 5s'),
+  N('v_curl',  'RT',  'curl slack webhook',   380, 390, 200, 'Webhook returns HTTP 502 — Slack is flapping.'),
+  N('v_exit1', 'F',   'exit 1',               380, 480, 160, 'Same non-zero exit as the blocking case — but mode is advisory.'),
+  N('v_log',   'ADV', 'log error, continue',  380, 570, 200, 'Advisory mode: failure becomes a log line. Event does NOT abort.'),
+  N('v_30',    'BLK', '30-early-fail.py',     380, 670, 180, 'Next subscriber still runs normally.', 'blocking · 15s'),
+  N('v_done',  'P',   'event complete',       380, 770, 200, 'Event finishes. Run continues. Slack notification is missing — fix that later, not now.'),
+];
+
+const EDGES_ADV = [
+  E('v1','v_rt','v_fire'),
+  E('v2','v_fire','v_10'),
+  E('v3','v_10','v_20','continue'),
+  E('v4','v_20','v_curl'),
+  E('v5','v_curl','v_exit1','502','fail'),
+  E('v6','v_exit1','v_log','advisory'),
+  E('v7','v_log','v_30','continue'),
+  E('v8','v_30','v_done','exit 0'),
+];
+
+// ============================================================
+// SCENARIO 5: STRUCTURED DIRECTIVE — hook returns reopen-gate
+// ============================================================
+const NODES_DIR = [
+  N('d_rt',    'RT',  'orchestrate runtime',   380, 0, 200, ''),
+  N('d_fire',  'EV',  'observer-drift fires',  380, 90, 220, 'Long-running observer flipped pass→fail AFTER the DAG advanced.'),
+  N('d_10',    'BLK', '10-reopen-gate.sh',     380, 200, 200, 'Default shipped hook. Decides whether to compensate.', 'blocking · 60s'),
+  N('d_stdout','DIR', 'stdout line 1:\n{"action":"reopen-gate",\n "reason":"observer flipped",\n "attempt_cap_override":5}', 380, 320, 270, 'Subscriber can emit a JSON directive on the first line of stdout. Runtime parses it before falling back to the exit code.'),
+  N('d_parse', 'RT',  'runtime parses directive', 380, 460, 220, 'Recognised actions (v1): reopen-gate · skip-group · cap-override · route-repair. Unknown actions → log warning, ignore.'),
+  N('d_gate',  'RT',  'AND gate re-opens',     380, 560, 200, 'The task group flips out of terminal-pass back into evaluating.'),
+  N('d_cap',   'RT',  'attempt cap = 5',       100, 560, 180, 'cap-override bumped per-group only — not global.'),
+  N('d_eval',  'EV',  'gate-evaluated re-fires', 380, 670, 220, 'Re-evaluation triggers the next gate-evaluated event, which routes pass/fail again.'),
+  N('d_repair','P',   'compensating repair task', 380, 770, 220, 'fail path now spawns a fix-task for the regression that was discovered late.'),
+];
+
+const EDGES_DIR = [
+  E('d1','d_rt','d_fire','async','normal'),
+  E('d2','d_fire','d_10'),
+  E('d3','d_10','d_stdout','JSON-on-stdout'),
+  E('d4','d_stdout','d_parse'),
+  E('d5','d_parse','d_gate','reopen-gate'),
+  E('d6','d_parse','d_cap','cap-override'),
+  E('d7','d_gate','d_eval'),
+  E('d8','d_eval','d_repair','fail path'),
+];
+
+// ============================================================
+// SCENARIO 6: TIMEOUT — hook hangs, SIGTERM then SIGKILL
+// ============================================================
+const NODES_TO = [
+  N('t_rt',    'RT',  'orchestrate runtime',   380, 0, 200, ''),
+  N('t_fire',  'EV',  'verdict-landed fires',  380, 90, 200, '15s hot-path timeout.'),
+  N('t_10',    'BLK', '30-dashboard.ts',       380, 200, 180, 'Subscriber hangs (network stall on dashboard push).', 'blocking · 15s'),
+  N('t_wait',  'RT',  't=15s timeout deadline', 380, 300, 200, 'Runtime waits up to @hook-timeout. Past that, kill signal.'),
+  N('t_term',  'F',   'SIGTERM',               380, 390, 140, 'Polite kill. Subscriber gets a chance to clean up.'),
+  N('t_grace', 'RT',  '5s grace window',       380, 480, 180, 'Wait for subscriber to exit cleanly.'),
+  N('t_kill',  'F',   'SIGKILL',               380, 570, 140, 'Hard kill if subscriber did not exit within grace.'),
+  N('t_split', 'RT',  'failure semantics',     380, 670, 200, 'Mode decides what happens next.'),
+  N('t_blk',   'BLK', 'blocking → abort event', 130, 770, 220, 'A blocking timeout escalates exactly like exit 1.', 'blocking'),
+  N('t_adv',   'ADV', 'advisory → log, continue', 630, 770, 220, 'An advisory timeout is just a log line — event continues with the next subscriber.', 'advisory'),
+];
+
+const EDGES_TO = [
+  E('t1','t_rt','t_fire'),
+  E('t2','t_fire','t_10'),
+  E('t3','t_10','t_wait','no response','normal'),
+  E('t4','t_wait','t_term','deadline','fail'),
+  E('t5','t_term','t_grace'),
+  E('t6','t_grace','t_kill','still alive','fail'),
+  E('t7','t_kill','t_split'),
+  E('t8','t_split','t_blk','if blocking','fail'),
+  E('t9','t_split','t_adv','if advisory'),
+];
+
+const VIEWS = {
+  overview: { nodes:NODES_OVERVIEW, edges:EDGES_OVERVIEW },
+  anatomy:  { nodes:NODES_ANATOMY,  edges:EDGES_ANATOMY  },
+  blocking: { nodes:NODES_BLOCK,    edges:EDGES_BLOCK    },
+  advisory: { nodes:NODES_ADV,      edges:EDGES_ADV      },
+  directive:{ nodes:NODES_DIR,      edges:EDGES_DIR      },
+  timeout:  { nodes:NODES_TO,       edges:EDGES_TO       },
+};
+
+const S = (label, nodes, edges) => ({ label, nodes, edges });
+const SCENARIOS = {
+  overview: {
+    name:'Overview', sub:'9 events along orchestrate lifecycle',
+    desc:'All nine events fired by the orchestrate runtime, with a few sample subscribers fanning out. Tap any node. Switch tabs to drill into mode, discovery, directives, timeouts.',
+    steps: null,
+  },
+  anatomy: {
+    name:'Anatomy', sub:'one event fires',
+    desc:'How a single event becomes a subscriber dispatch chain. Discovery walks two directories in lexical order, executable bit required, repo-local before user-level.',
+    steps: [
+      S('Runtime emits the event',          ['a_rt','a_fire'],   ['a1']),
+      S('Discovery walk begins',            ['a_disc'],          ['a2']),
+      S('Look in <repo>/.standards-extractor/hooks/<event>/', ['a_repo'], ['a3']),
+      S('Then ~/.config/standards-extractor/hooks/<event>/',  ['a_user'], ['a4']),
+      S('Lexical order: 10- before 20- before 30-', ['a_10'], ['a5']),
+      S('Dispatch 10-stream-dot.ts',        ['a_disp'],          ['a8']),
+      S('Pipe JSON payload + env vars',     ['a_env'],           ['a8b']),
+      S('Exit code parsed',                 ['a_exit'],          ['a9']),
+      S('Next: 20-slack-notify.sh',         ['a_20'],            ['a6']),
+      S('Next: 30-early-fail.py',           ['a_30'],            ['a7']),
+      S('All subscribers ran → event complete', ['a_done'],      ['a10']),
+    ],
+  },
+  blocking: {
+    name:'Blocking fails', sub:'exit 1 → abort everything',
+    desc:'A blocking subscriber returns non-zero. The event aborts AND the orchestrate run halts. Later subscribers in the chain never run.',
+    steps: [
+      S('Event fires',              ['b_rt','b_fire'],   ['b1']),
+      S('First subscriber spawns',  ['b_10'],            ['b2']),
+      S('Payload piped to stdin',   ['b_pipe'],          ['b3']),
+      S('Subscriber exits 1',       ['b_exit1'],         ['b4']),
+      S('Mode is blocking → abort event', ['b_abort'],   ['b5']),
+      S('Later 20-notify.sh is SKIPPED',  ['b_20'],      ['b7']),
+      S('Blocking escalates → abort orchestration', ['b_halt'], ['b6']),
+      S('Surface to human / ops',   ['b_human'],         ['b8']),
+    ],
+  },
+  advisory: {
+    name:'Advisory fails', sub:'same failure, log + continue',
+    desc:'Same exit 1, but @hook-mode: advisory. The failure becomes a log line. Event continues with the next subscriber.',
+    steps: [
+      S('Event fires',              ['v_rt','v_fire'],   ['v1']),
+      S('10-stream-dot.ts runs OK', ['v_10'],            ['v2']),
+      S('Next: advisory slack hook',['v_20'],            ['v3']),
+      S('curl webhook → 502',       ['v_curl'],          ['v4']),
+      S('Subscriber exits 1',       ['v_exit1'],         ['v5']),
+      S('Advisory mode → just log', ['v_log'],           ['v6']),
+      S('Next subscriber still runs',['v_30'],           ['v7']),
+      S('Event completes; run continues', ['v_done'],    ['v8']),
+    ],
+  },
+  directive: {
+    name:'Directive', sub:'hook returns reopen-gate',
+    desc:'A hook can emit a JSON directive on the first line of stdout to influence runtime behaviour — beyond pass/fail. Useful for compensating drift.',
+    steps: [
+      S('observer-drift fires (async)', ['d_rt','d_fire'], ['d1']),
+      S('10-reopen-gate.sh runs',       ['d_10'],          ['d2']),
+      S('Hook writes JSON directive on stdout line 1', ['d_stdout'], ['d3']),
+      S('Runtime parses directive',     ['d_parse'],       ['d4']),
+      S('Action: reopen-gate',          ['d_gate'],        ['d5']),
+      S('Action: cap-override = 5',     ['d_cap'],         ['d6']),
+      S('gate-evaluated re-fires',      ['d_eval'],        ['d7']),
+      S('Compensating repair task',     ['d_repair'],      ['d8']),
+    ],
+  },
+  timeout: {
+    name:'Timeout', sub:'SIGTERM → 5s grace → SIGKILL',
+    desc:'A subscriber hangs past its declared @hook-timeout. Runtime sends SIGTERM, waits 5s, then SIGKILL. Mode decides whether this aborts the event.',
+    steps: [
+      S('Event fires',                   ['t_rt','t_fire'], ['t1']),
+      S('30-dashboard.ts spawns',        ['t_10'],          ['t2']),
+      S('Subscriber stalls past 15s',    ['t_wait'],        ['t3']),
+      S('SIGTERM sent',                  ['t_term'],        ['t4']),
+      S('5s grace window',               ['t_grace'],       ['t5']),
+      S('Still alive → SIGKILL',         ['t_kill'],        ['t6']),
+      S('Failure → mode decides',        ['t_split'],       ['t7']),
+      S('If blocking: abort event',      ['t_blk'],         ['t8']),
+      S('If advisory: log + continue',   ['t_adv'],         ['t9']),
+    ],
+  },
+};
+
+const TAG_COLOR = { RT:'#7a8294', EV:'#b366ff', DIR:'#9c6cf5', SUB:'#4da6ff', ADV:'#3ddc84', BLK:'#ffb454', F:'#ff5a5f', P:'#3ddc84', DI:'#ff8c1a' };
+const TAG_LABEL = {
+  RT: 'runtime',
+  EV: 'event (B surface)',
+  DIR: 'structured directive',
+  SUB: 'subscriber',
+  ADV: 'advisory subscriber',
+  BLK: 'blocking subscriber',
+  F:  'fail / halt',
+  P:  'pass',
+};
+const TAG_TEXT  = { RT:'rt', EV:'event', DIR:'directive', SUB:'sub', ADV:'advisory', BLK:'blocking', F:'FAIL', P:'PASS', DI:'dir' };
+
+function FlowNode({ data }) {
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, (data.label || '').split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    data.sub ? h('div', { className: 'node-sub' }, data.sub) : null,
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(kind, sourceTag, targetTag) {
+  if (kind === 'fail') return '#ff5a5f';
+  if (kind === 'killed') return '#ff8c1a';
+  if (sourceTag === 'EV' || targetTag === 'EV') return '#b366ff';
+  if (sourceTag === 'DIR' || targetTag === 'DIR') return '#9c6cf5';
+  if (sourceTag === 'BLK' || targetTag === 'BLK') return '#ffb454';
+  if (sourceTag === 'ADV' || targetTag === 'ADV') return '#3ddc84';
+  if (sourceTag === 'P' || targetTag === 'P') return '#3ddc84';
+  if (sourceTag === 'F' || targetTag === 'F') return '#ff5a5f';
+  return '#7a8294';
+}
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1200);
+  const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
+
+  const sc = SCENARIOS[scenario];
+  const view = VIEWS[scenario];
+  const NODES = view.nodes;
+  const EDGES = view.edges;
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), [NODES]);
+
+  useEffect(() => { setStep(-1); setPlaying(false); setSelectedId(null); }, [scenario]);
+
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 90; sy += nd.y + 35; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 600, zoom: 0.9 });
+  }, [step, scenario, follow, hasSteps, setCenter, NODES, sc]);
+
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      NODES.forEach(n => ns[n.id] = 'done');
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps, NODES, EDGES, sc]);
+
+  const visualNodeState = (id) => hasSteps ? nodeState[id] : 'visible';
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, sub:n.sub, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps, NODES]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const st = edgeState[e.id];
+    const col = edgeColor(e.kind, tagById[e.source], tagById[e.target]);
+    let cls = st;
+    if (e.kind === 'killed') cls += ' killed';
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: cls,
+      animated: st === 'active',
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4) },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [edgeState, EDGES, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this scenario.' : `${sc.steps[step].label}`);
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>setScenario(k) },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2000},'0.5×'),
+          h('option',{value:1200},'1×'),
+          h('option',{value:700}, '2×'),
+          h('option',{value:400}, '3×'),
+        ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag', style:{background:TAG_COLOR[sel.tag],color:'#0f1117'}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', (sel.label || '').replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      sel.sub ? h('p', null, h('code', null, sel.sub)) : null,
+      sel.info ? h('p', null, sel.info) : null,
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--EV)'}}),' event'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--BLK)'}}),' blocking sub'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--ADV)'}}),' advisory sub'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--DIR)'}}),' directive'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--RT)'}}),' runtime'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--F)'}}),' fail/halt'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--P)'}}),' pass'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.22 },
+      minZoom:0.15, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
