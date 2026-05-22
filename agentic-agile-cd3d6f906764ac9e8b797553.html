@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>Agentic-Agile — Spec → Wave → Gate → Retro</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    --H:#ff8c1a; --A:#b366ff; --S:#3ddc84; --G:#4da6ff; --M:#3dc8d4; --W:#7a8294; --F:#ff5a5f; --P:#3ddc84;
+    --accent:#4da6ff;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 130px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--S),var(--G),var(--A));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:300px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:220px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-H{border-color:var(--H);} .tag-H{background:var(--H);}
+  .node-A{border-color:var(--A);} .tag-A{background:var(--A);}
+  .node-S{border-color:var(--S);} .tag-S{background:var(--S);}
+  .node-G{border-color:var(--G);} .tag-G{background:var(--G);}
+  .node-M{border-color:var(--M);} .tag-M{background:var(--M);}
+  .node-W{border-color:var(--W);} .tag-W{background:var(--W);}
+  .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
+  .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
+  .node-pending{opacity:.25;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  .node-done::after{content:"✓";position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--P);color:#0f1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .node-box{position:relative;}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.18;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
+    .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
+const h = React.createElement;
+
+const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
+
+const NODES = [
+  // ── Phase 1: Plan & backlog ──────────────────────────────
+  N('plan',      'H', 'Plan & decompose',         400,    0, null, 'Human contribution. Architectural judgment, domain context, quality standards. Principle 4: "Humans design, agents execute, both review."'),
+  N('backlog',   'S', 'Structured backlog',       400,   90, null, 'Spec artifact. The "no backlog" pathology Epstein calls out — every capability is a tracked item, not a chat session.'),
+
+  // ── Phase 2: Issue (agentic-story template) ──────────────
+  N('issue',     'S', 'GitHub Issue\n(agentic-story)', 400, 200, 200, 'Issues-First rule: every work request becomes a GitHub Issue before any code is written. Traceability from request → delivery.'),
+  N('prompt',    'S', 'Originating Prompt',       100,  330, null, 'The exact human prompt, preserved verbatim. Enables retrospective spec-quality evaluation (D4: Partnership Efficiency).'),
+  N('accept',    'S', 'Acceptance Criteria',      290,  330, null, 'Testable checklist. The contract — "done" means these are satisfied, not "satisfied when chat session ends."'),
+  N('scope',     'S', 'Scope + File Ownership',   490,  330, null, 'Explicit list of files the story owns. Two stories in the same wave cannot own overlapping files (Principle 2).'),
+  N('neg',       'S', 'Negative Constraints',     690,  330, null, 'Explicit "do not touch" boundaries. Karpathy surgical-changes rule, made institutional. Validation gate later checks these were respected.'),
+
+  N('ifGate',    'G', 'Issues-First gate',        400,  470, null, '"Every work request must be captured as a GitHub Issue before implementation begins." No issue → no code. Blocks ad-hoc prompt work.'),
+
+  // ── Phase 3: Wave decomposition ──────────────────────────
+  N('decomp',    'W', 'Wave decomposition',       400,  580, null, 'Runtime. Splits backlog into waves — parallel batches of independently-executable stories. Cross-cutting concerns resolved in earlier waves.'),
+  N('overlap',   'G', 'File-overlap check',       400,  680, null, 'Governance gate. If two stories in this wave own overlapping files, they get split into sequential waves. Principle 2.'),
+
+  N('wave',      'W', 'Wave N\n(parallel)',       400,  790, null, 'Runtime. The wave fans out into N stories that execute simultaneously. Coordination is structural (file ownership), not synchronous (chat).'),
+
+  // ── Phase 4: Three parallel stories ──────────────────────
+  N('storyA',    'A', 'Story A — agent\n(impl + tests)',  120,  900, 160, 'Agent execution. Operates against the spec — acceptance criteria, scope, negative constraints. Spec is the program (Software 3.0).'),
+  N('storyB',    'A', 'Story B — agent\n(impl + tests)',  400,  900, 160, 'Agent execution running in parallel with Story A. No file overlap because overlap check passed.'),
+  N('storyC',    'A', 'Story C — agent\n(impl + tests)',  680,  900, 160, 'Agent execution running in parallel with A and B. "Teams scale through parallel partnerships" (Principle 3).'),
+
+  // ── Phase 5: Validation gates (8 items, grouped 3-way) ───
+  N('gTests',    'G', 'Tests / lint / types',     120, 1030, 170, 'Validation gates 1–3 from CLAUDE.md: tests pass, linter clean, types check. Deterministic checks.'),
+  N('gScope',    'G', 'Scope respected\n(no unrelated changes,\nAC met, neg constraints)', 400, 1030, 200, 'Validation gates 4–7: PR is scoped to the issue, acceptance criteria met, negative constraints respected, docs updated.'),
+  N('gReview',   'G', 'Independent review',       680, 1030, 170, 'Validation gate 8. Human-led review of correctness, assumptions, blind spots. Findings reach terminal state: fixed / accepted / deferred (Principle 6).'),
+
+  // ── Phase 6: Wave review gate ────────────────────────────
+  N('waveGate',  'G', 'Wave review gate',         400, 1170, null, 'Runtime. AND-gate across all stories in the wave. No story merges until every story passes every validation gate. "Waves, not waterfalls" (Principle 7).'),
+
+  // ── Phase 7: Outcome split ───────────────────────────────
+  N('pass',      'P', 'PASS',                     200, 1290, null, 'All stories green. Wave is mergeable.'),
+  N('fail',      'F', 'FAIL',                     600, 1290, null, 'At least one story has a finding that isn\'t resolved. Routes to disposition.'),
+
+  // ── PASS branch ──────────────────────────────────────────
+  N('merge',     'W', 'Merge to main',            200, 1400, null, 'Runtime. Each story merges via reviewed PR. Branch strategy: feat/* → main.'),
+  N('shippable', 'S', 'Shippable increment',      200, 1490, null, 'Every deliverable stands alone — independently shippable and integrable. Principle 12.'),
+  N('retro',     'M', 'Retrospective',            200, 1600, null, 'Measurement. Retrospectives examine the FULL partnership: spec failures, agent surprises, human prompting failures, automation candidates. Principle 8.'),
+  N('metrics',   'M', '8-dim measurement\n(escaped defects, rework,\nspec quality, autonomy)', 200, 1720, 190, 'Measurement. Tracks what matters for the partnership: escaped defects, rework rate, spec quality, evolution of agent autonomy. NOT just velocity. Principle 9.'),
+  N('autonomy',  'M', 'Earned autonomy\n(scope expands)', 200, 1860, null, 'Measurement. Agent autonomy is earned through evidence. Expand scope only where measured outcomes justify trust. Principle 10.'),
+
+  // ── FAIL branch ──────────────────────────────────────────
+  N('dispose',   'H', 'Disposition:\nfixed / accepted / deferred', 600, 1400, 200, 'Human judgment. Every finding must reach a terminal state — never silently dropped. Principle 6.'),
+  N('amend',     'S', 'Amend spec\n(tighten AC, clarify scope)', 600, 1520, 200, 'Spec artifact. The spec, not the code, is the primary fix surface. "The quality of agent output is bounded by the quality of the specification that produced it."'),
+  N('repair',    'A', 'Agent repairs\n→ loop back to wave',  600, 1660, 200, 'Agent execution. Re-spawned with amended spec + failing findings as context. Loops back to wave start. Same contract, sharper spec.'),
+
+  // ── Convergence ──────────────────────────────────────────
+  N('next',      'W', 'Next wave\nor next epic',  400, 2000, null, 'Runtime. Scheduler advances to the next wave in the DAG. If autonomy was earned, this wave\'s agent may take on broader scope including orchestration.'),
+
+  // ── Async: vocabulary drift ──────────────────────────────
+  N('drift',     'S', 'Vocab / contract drift detected', 880, 1030, 200, 'Spec artifact. Async signal from review: two stories used inconsistent terms for the same concept. "Ambiguity compounds at scale" (Principle 11).'),
+  N('glossary',  'S', 'Update shared\nvocabulary',  880, 1170, 170, 'Spec artifact. Glossary / contracts file updated. Feeds back into backlog so future stories use consistent terms. Principle 11.'),
+];
+
+const E = (id, source, target, label) => ({ id, source, target, label });
+const EDGES = [
+  // Plan → backlog → issue
+  E('e1','plan','backlog'),
+  E('e2','backlog','issue'),
+  // Issue → four spec artifacts
+  E('e3','issue','prompt'),
+  E('e4','issue','accept'),
+  E('e5','issue','scope'),
+  E('e6','issue','neg'),
+  // Spec artifacts → Issues-First gate
+  E('e7','prompt','ifGate'),
+  E('e8','accept','ifGate'),
+  E('e9','scope','ifGate'),
+  E('e10','neg','ifGate'),
+  // Gate → wave decomp
+  E('e11','ifGate','decomp'),
+  E('e12','decomp','overlap'),
+  E('e13','overlap','wave'),
+  // Wave fans out into stories
+  E('e14','wave','storyA'),
+  E('e15','wave','storyB'),
+  E('e16','wave','storyC'),
+  // Each story → one of the three gate buckets (representative)
+  E('e17','storyA','gTests'),
+  E('e18','storyB','gScope'),
+  E('e19','storyC','gReview'),
+  // Gates converge on wave review gate
+  E('e20','gTests','waveGate'),
+  E('e21','gScope','waveGate'),
+  E('e22','gReview','waveGate'),
+  // Wave gate → pass / fail
+  E('e23','waveGate','pass'),
+  E('e24','waveGate','fail'),
+  // PASS branch
+  E('e25','pass','merge'),
+  E('e26','merge','shippable'),
+  E('e27','shippable','retro'),
+  E('e28','retro','metrics'),
+  E('e29','metrics','autonomy'),
+  E('e30','autonomy','next','informs scope'),
+  // FAIL branch
+  E('e31','fail','dispose'),
+  E('e32','dispose','amend'),
+  E('e33','amend','repair'),
+  E('e34','repair','wave','loop back'),
+  // Async drift branch
+  E('e35','gReview','drift','vocab conflict'),
+  E('e36','drift','glossary'),
+  E('e37','glossary','backlog','feeds back'),
+];
+
+const S = (label, nodes, edges, focus) => ({ label, nodes, edges, focus });
+const SCENARIOS = {
+  overview: {
+    name:'Overview', sub:'everything',
+    desc:'All surfaces and edges. Tap a node to read what role it plays in the Agentic-Agile manifesto. Pick a scenario, then ▶ Play, to step through.',
+    steps: null,
+  },
+  happy: {
+    name:'Happy path', sub:'spec → wave → merge → retro',
+    desc:'A clean wave: plan → issue with full spec → wave decomposed → 3 stories in parallel → all gates green → merge → retro → metrics → earned autonomy.',
+    steps: [
+      S('Plan & decompose',                  ['plan'],     []),
+      S('Structured backlog',                ['backlog'],  ['e1']),
+      S('GitHub Issue (agentic-story)',      ['issue'],    ['e2']),
+      S('Originating Prompt preserved',      ['prompt'],   ['e3']),
+      S('Acceptance Criteria written',       ['accept'],   ['e4']),
+      S('Scope + File Ownership declared',   ['scope'],    ['e5']),
+      S('Negative Constraints captured',     ['neg'],      ['e6']),
+      S('Issues-First gate passes',          ['ifGate'],   ['e7','e8','e9','e10']),
+      S('Wave decomposition',                ['decomp'],   ['e11']),
+      S('File-overlap check clean',          ['overlap'],  ['e12']),
+      S('Wave N launches',                   ['wave'],     ['e13']),
+      S('Stories A/B/C run in parallel',     ['storyA','storyB','storyC'], ['e14','e15','e16']),
+      S('Tests / lint / types',              ['gTests'],   ['e17']),
+      S('Scope + AC + neg respected',        ['gScope'],   ['e18']),
+      S('Independent review',                ['gReview'],  ['e19']),
+      S('Wave review gate AND-passes',       ['waveGate'], ['e20','e21','e22']),
+      S('PASS',                              ['pass'],     ['e23']),
+      S('Merge to main',                     ['merge'],    ['e25']),
+      S('Shippable increment',               ['shippable'],['e26']),
+      S('Retrospective',                     ['retro'],    ['e27']),
+      S('8-dim measurement',                 ['metrics'],  ['e28']),
+      S('Earned autonomy',                   ['autonomy'], ['e29']),
+      S('Next wave',                         ['next'],     ['e30']),
+    ],
+  },
+  fail: {
+    name:'Fail + spec repair', sub:'finding → amend spec → retry',
+    desc:'Story B touches a file outside its declared ownership. Review flags it. Disposition: fixed. Spec is amended (tighter scope), agent repairs, wave re-runs, all green on attempt 2.',
+    steps: [
+      // Spec lifecycle (compressed)
+      S('Plan & decompose',                  ['plan'],     []),
+      S('Backlog & issue',                   ['backlog','issue'], ['e1','e2']),
+      S('Spec artifacts captured',           ['prompt','accept','scope','neg'], ['e3','e4','e5','e6']),
+      S('Issues-First gate',                 ['ifGate'],   ['e7','e8','e9','e10']),
+      S('Wave decomposition',                ['decomp','overlap','wave'], ['e11','e12','e13']),
+      // Attempt 1
+      S('① Stories A/B/C run',               ['storyA','storyB','storyC'], ['e14','e15','e16']),
+      S('① Tests / lint / types green',      ['gTests'],   ['e17']),
+      S('① Scope check: ✕ Story B touched\nfile outside ownership',
+                                             ['gScope'],   ['e18']),
+      S('① Independent review confirms',     ['gReview'],  ['e19']),
+      S('① Wave gate trips',                 ['waveGate'], ['e20','e21','e22']),
+      S('① FAIL ✕',                          ['fail'],     ['e24']),
+      S('① Disposition: fixed',              ['dispose'],  ['e31']),
+      S('① Amend spec — tighten scope',      ['amend'],    ['e32']),
+      S('① Agent repairs with new spec',     ['repair'],   ['e33']),
+      S('↩ Loop back to wave',               ['wave'],     ['e34']),
+      // Attempt 2
+      S('② Stories re-run',                  ['storyA','storyB','storyC'], ['e14','e15','e16']),
+      S('② All gates green',                 ['gTests','gScope','gReview'], ['e17','e18','e19']),
+      S('② Wave gate passes',                ['waveGate'], ['e20','e21','e22']),
+      S('② PASS ✓',                          ['pass'],     ['e23']),
+      S('② Merge → retro → metrics',         ['merge','shippable','retro','metrics'], ['e25','e26','e27','e28']),
+      S('② Earned autonomy',                 ['autonomy'], ['e29']),
+      S('② Next wave',                       ['next'],     ['e30']),
+    ],
+  },
+  drift: {
+    name:'Vocab drift', sub:'shared-term conflict mid-wave',
+    desc:'Two stories use different names for the same concept. Review flags vocabulary drift, glossary is updated, fix feeds back into the backlog so future stories stay consistent. Principle 11.',
+    steps: [
+      S('Wave already running',              ['wave','storyA','storyB','storyC'], ['e13','e14','e15','e16']),
+      S('Review catches vocab conflict',     ['gReview'],  ['e19']),
+      S('Vocab / contract drift detected',   ['drift'],    ['e35']),
+      S('Update shared vocabulary',          ['glossary'], ['e36']),
+      S('Feeds back into backlog',           ['backlog'],  ['e37']),
+      S('Re-issue with glossary refs',       ['issue'],    ['e2']),
+      S('Re-run wave on attempt 2',          ['wave'],     []),
+      S('All gates green this time',         ['gTests','gScope','gReview'], ['e17','e18','e19']),
+      S('PASS',                              ['pass','waveGate'], ['e20','e21','e22','e23']),
+    ],
+  },
+  autonomy: {
+    name:'Earned autonomy', sub:'metrics → broader scope',
+    desc:'Three small clean waves build evidence. Metrics show low rework + high spec quality. Next wave\'s agent is granted broader scope — including orchestration of sub-agents. Principle 10.',
+    steps: [
+      S('Wave N-2: small scope, passes',     ['wave','pass'], []),
+      S('Wave N-1: small scope, passes',     ['wave','pass'], []),
+      S('Wave N: small scope, passes',       ['wave','pass'], ['e23']),
+      S('Retrospective reviews 3 waves',     ['retro'],    ['e27']),
+      S('8-dim measurement: low rework,\nhigh spec quality',
+                                             ['metrics'],  ['e28']),
+      S('Earned autonomy threshold reached', ['autonomy'], ['e29']),
+      S('Next wave: agent takes orchestrator role,\nbroader scope',
+                                             ['next'],     ['e30']),
+    ],
+  },
+};
+
+const TAG_COLOR = { H:'#ff8c1a', A:'#b366ff', S:'#3ddc84', G:'#4da6ff', M:'#3dc8d4', W:'#7a8294', F:'#ff5a5f', P:'#3ddc84' };
+const TAG_LABEL = {
+  H:'H — human design / review',
+  A:'A — agent execution',
+  S:'S — spec artifact',
+  G:'G — governance gate',
+  M:'M — measurement',
+  W:'W — runtime / scheduling',
+  F:'fail',
+  P:'pass',
+};
+const TAG_TEXT  = { H:'H', A:'A', S:'S', G:'G', M:'M', W:'rt', F:'FAIL', P:'PASS' };
+
+function FlowNode({ data }) {
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, data.label.split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(sourceTag, targetTag) {
+  if (sourceTag !== 'W') return TAG_COLOR[sourceTag];
+  if (targetTag !== 'W') return TAG_COLOR[targetTag];
+  return TAG_COLOR.W;
+}
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1200);
+  const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
+  const sc = SCENARIOS[scenario];
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
+
+  useEffect(() => { setStep(-1); setPlaying(false); }, [scenario]);
+
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 80; sy += nd.y + 30; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 600, zoom: 0.85 });
+  }, [step, scenario, follow, hasSteps, setCenter]);
+
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      NODES.forEach(n => ns[n.id] = 'done');
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps]);
+
+  const visualNodeState = (id) => {
+    if (!hasSteps) return 'visible';
+    return nodeState[id];
+  };
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const st = edgeState[e.id];
+    const col = edgeColor(tagById[e.source], tagById[e.target]);
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: st,
+      animated: st === 'active',
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4) },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [edgeState, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this scenario.' : `${sc.steps[step].label}`);
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>{ setScenario(k); setSelectedId(null); } },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2000},'0.5×'),
+          h('option',{value:1200},'1×'),
+          h('option',{value:700}, '2×'),
+          h('option',{value:400}, '3×'),
+        ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag tag-'+sel.tag, style:{background:TAG_COLOR[sel.tag]}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', sel.label.replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      h('p', null, sel.info)
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--H)'}}),' H human'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--A)'}}),' A agent'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--S)'}}),' S spec'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--G)'}}),' G gate'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--M)'}}),' M measure'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--W)'}}),' rt runtime'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.22 },
+      minZoom:0.12, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
