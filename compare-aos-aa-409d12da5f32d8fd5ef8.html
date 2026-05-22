@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>Agent OS vs Agentic-Agile — when each wins</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    --H:#ff8c1a; --A:#b366ff; --S:#3ddc84; --G:#4da6ff; --M:#3dc8d4; --W:#7a8294; --F:#ff5a5f; --P:#3ddc84;
+    --accent:#4da6ff;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 130px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--S),var(--G),var(--A));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:300px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:220px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-H{border-color:var(--H);} .tag-H{background:var(--H);}
+  .node-A{border-color:var(--A);} .tag-A{background:var(--A);}
+  .node-S{border-color:var(--S);} .tag-S{background:var(--S);}
+  .node-G{border-color:var(--G);} .tag-G{background:var(--G);}
+  .node-M{border-color:var(--M);} .tag-M{background:var(--M);}
+  .node-W{border-color:var(--W);} .tag-W{background:var(--W);}
+  .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
+  .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
+  .node-V{border-color:#ffd24d;} .tag-V{background:#ffd24d;}
+  .node-pending{opacity:.25;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  .node-done::after{content:"✓";position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--P);color:#0f1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .node-box{position:relative;}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.18;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  .lane{position:absolute;z-index:1;border-radius:14px;border:1px dashed var(--border);}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
+    .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
+const h = React.createElement;
+
+const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
+
+const NODES = [
+  // ── Shared entry ─────────────────────────────────────────
+  N('ctx', 'H', 'Incoming request\n(same for both)', 360, 0, 200, 'The identical work request is fed into both methodologies. The point of comparison: how each one turns this request into shipped, trustworthy software — and where that machinery helps vs. gets in the way.'),
+
+  // ── Lane headers ─────────────────────────────────────────
+  N('aosHead', 'W', 'AGENT OS\nspec-driven', 70, 115, 190, 'Spec-driven development. A precise, verified spec is the source of truth; agents implement against it; a verification triad proves "done". Strong when the target is knowable up front.'),
+  N('aaHead', 'W', 'AGENTIC-AGILE\nwaves + retro', 650, 115, 190, 'Agile loop for agent teams. Work flows as agentic-story issues into parallel waves, gated by review, closed by retrospective + multi-dimensional metrics. Strong when the target must be discovered.'),
+
+  // ── Agent OS lane (left) ─────────────────────────────────
+  N('aos_spec',    'S', 'Write + verify spec',        70, 225, 190, 'Agent OS. Produce spec.md and pass verify-spec: complete, unambiguous, testable. This step is cheap when requirements are knowable — and a hard wall when they aren\'t.'),
+  N('aos_tasks',   'S', 'Task breakdown\n(tasks.md)', 70, 325, 190, 'Agent OS. Decompose the verified spec into an ordered, dependency-aware task list. The agent\'s working contract.'),
+  N('aos_impl',    'A', 'Implement\n(single / multi-agent)', 70, 425, 190, 'Agent OS. Code + tests against tasks.md, run by one agent or fanned out to parallel sub-agents.'),
+  N('aos_verify',  'G', 'Verification triad',         70, 525, 190, 'Agent OS. run-all-tests + verify-tasks + verification-report. Deterministic, evidence-based proof the spec was satisfied.'),
+  N('aos_gate',    'G', 'Verify gate',                70, 625, 190, 'Agent OS. AND across the triad. Pass → roadmap. Fail → revise the spec, not just patch the code.'),
+  N('aos_revise',  'S', 'Revise spec\n→ re-implement', 70, 725, 190, 'Agent OS. The spec/tasks are the primary fix surface. Tighten acceptance criteria, add a guard test, loop back to implementation.'),
+  N('aos_roadmap', 'M', 'Update roadmap\n→ ship',     70, 825, 190, 'Agent OS. Mark the feature delivered, surface the next roadmap item. The dated spec folder remains as the permanent record.'),
+
+  // ── Agentic-Agile lane (right) ───────────────────────────
+  N('aa_backlog', 'S', 'Structured backlog',          650, 225, 190, 'Agentic-Agile. Every capability is a tracked item, not a chat session. Small bets and hypotheses live here as first-class work.'),
+  N('aa_issue',   'S', 'Agentic-story issue',         650, 325, 190, 'Agentic-Agile. Issues-First: each request becomes a GitHub issue with originating prompt, acceptance criteria, scope, and negative constraints — or a hypothesis when the target is fuzzy.'),
+  N('aa_wave',    'W', 'Wave\n(parallel stories)',    650, 425, 190, 'Agentic-Agile. A batch of independently-executable stories runs in parallel. Coordination is structural (file ownership), not synchronous. Naturally explores variants.'),
+  N('aa_gates',   'G', 'Validation gates (8)',        650, 525, 190, 'Agentic-Agile. Per-story checks: tests, lint, types, scope respected, AC met, negative constraints, docs, independent review.'),
+  N('aa_review',  'G', 'Wave review gate',            650, 625, 190, 'Agentic-Agile. AND-gate across the whole wave. No story merges until every story passes. "Waves, not waterfalls."'),
+  N('aa_disp',    'H', 'Disposition:\nfix / accept / defer', 650, 725, 190, 'Agentic-Agile. Every finding reaches a terminal state — never silently dropped. Human judgment closes the loop.'),
+  N('aa_retro',   'M', 'Retro + 8-dim metrics',       650, 825, 190, 'Agentic-Agile. Retrospective examines the full partnership: spec failures, agent surprises, prompting failures. Metrics track escaped defects, rework, spec quality, autonomy — not just velocity.'),
+
+  // ── Verdict (center bottom) ──────────────────────────────
+  N('verdict', 'V', 'VERDICT', 360, 470, 200, 'The takeaway for the selected use case. Play a use-case tab to the end — the final step states which approach wins and why. Spoiler: it depends on how knowable the target is.'),
+];
+
+const E = (id, source, target, label) => ({ id, source, target, label });
+const EDGES = [
+  // Shared entry → lanes
+  E('c1','ctx','aosHead'),
+  E('c2','ctx','aaHead'),
+  // Agent OS lane
+  E('a1','aosHead','aos_spec'),
+  E('a2','aos_spec','aos_tasks'),
+  E('a3','aos_tasks','aos_impl'),
+  E('a4','aos_impl','aos_verify'),
+  E('a5','aos_verify','aos_gate'),
+  E('a6','aos_gate','aos_roadmap','pass'),
+  E('a7','aos_gate','aos_revise','fail'),
+  E('a8','aos_revise','aos_impl','loop'),
+  // Agentic-Agile lane
+  E('b1','aaHead','aa_backlog'),
+  E('b2','aa_backlog','aa_issue'),
+  E('b3','aa_issue','aa_wave'),
+  E('b4','aa_wave','aa_gates'),
+  E('b5','aa_gates','aa_review'),
+  E('b6','aa_review','aa_retro','pass'),
+  E('b7','aa_review','aa_disp','fail'),
+  E('b8','aa_disp','aa_wave','loop'),
+  E('b9','aa_retro','aa_backlog','feeds back'),
+];
+
+const S = (label, nodes, edges, focus) => ({ label, nodes, edges, focus });
+const SCENARIOS = {
+  overview: {
+    name:'Side-by-side', sub:'both lanes',
+    desc:'Left lane = Agent OS (spec-driven). Right lane = Agentic-Agile (waves + retro). Same request enters both. Pick a use-case tab and ▶ Play to watch each lane respond, ending in a verdict.',
+    steps: null,
+  },
+  uc1: {
+    name:'Use case 1', sub:'well-specified feature',
+    desc:'"Add OAuth2 login to the API." Requirements are clear and testable up front. Watch both lanes; verdict at the end.',
+    steps: [
+      S('Request: add OAuth2 login',                       ['ctx'],                       []),
+      S('Agent OS · spec is easy to write & verify here',  ['aosHead','aos_spec'],        ['c1','a1']),
+      S('Agent OS · task breakdown',                       ['aos_tasks'],                 ['a2']),
+      S('Agent OS · implement',                            ['aos_impl'],                  ['a3']),
+      S('Agent OS · verification triad green',             ['aos_verify'],                ['a4']),
+      S('Agent OS · gate passes → ship',                   ['aos_gate','aos_roadmap'],    ['a5','a6']),
+      S('Agentic-Agile · backlog + agentic-story issue',   ['aaHead','aa_backlog','aa_issue'], ['c2','b1','b2']),
+      S('Agentic-Agile · single wave (parallelism unused)',['aa_wave'],                   ['b3']),
+      S('Agentic-Agile · gates + wave review',             ['aa_gates','aa_review'],      ['b4','b5']),
+      S('Agentic-Agile · retro + metrics (ceremony)',      ['aa_retro'],                  ['b6']),
+      S('VERDICT → Agent OS. Precise spec is cheap, verify is deterministic. The wave + retro machinery is pure overhead for a known, single-story change.', ['verdict','aos_spec','aos_gate'], []),
+    ],
+  },
+  uc2: {
+    name:'Use case 2', sub:'fuzzy R&D goal',
+    desc:'"Raise extraction accuracy on unfamiliar codebases." Nobody can write a complete, testable spec yet — the solution shape is unknown.',
+    steps: [
+      S('Goal: improve accuracy — shape unknown',          ['ctx'],                       []),
+      S('Agent OS · try to write the spec…',               ['aosHead','aos_spec'],        ['c1','a1']),
+      S('Agent OS · STALLS — requirements are a hypothesis, not a verifiable contract', ['aos_spec'], []),
+      S('Agentic-Agile · backlog of small bets',           ['aaHead','aa_backlog'],       ['c2','b1']),
+      S('Agentic-Agile · issue framed as a hypothesis',    ['aa_issue'],                  ['b2']),
+      S('Agentic-Agile · wave explores variants in parallel', ['aa_wave'],                ['b3']),
+      S('Agentic-Agile · gates + review keep what works',  ['aa_gates','aa_review'],      ['b4','b5']),
+      S('Agentic-Agile · retro reshapes the next wave',    ['aa_retro'],                  ['b6']),
+      S('Agentic-Agile · learning feeds the backlog',      ['aa_backlog'],                ['b9']),
+      S('VERDICT → Agentic-Agile. The discovery loop finds the shape iteratively. Agent OS jams at verify-spec because there is nothing testable to commit to yet.', ['verdict','aa_wave','aa_retro'], []),
+    ],
+  },
+  uc3: {
+    name:'Use case 3', sub:'escaped prod defect',
+    desc:'"A customer hit a crash we never caught." An escaped defect. The interesting comparison is durability of the fix vs. learning from the miss.',
+    steps: [
+      S('Escaped defect reported',                         ['ctx'],                       []),
+      S('Agent OS · revise spec + add a guard test (root cause)', ['aosHead','aos_spec','aos_revise'], ['c1','a1']),
+      S('Agent OS · re-implement',                         ['aos_impl'],                  ['a8']),
+      S('Agent OS · verification triad + guard test green',['aos_verify','aos_gate'],     ['a4','a5']),
+      S('Agentic-Agile · disposition the finding (never dropped)', ['aaHead','aa_disp'],  ['c2']),
+      S('Agentic-Agile · retro: why did it escape? metric: escaped-defects', ['aa_retro'], []),
+      S('Agentic-Agile · feeds the backlog to prevent recurrence', ['aa_backlog'],        ['b9']),
+      S('VERDICT → Both. Agent OS gives the durable fix surface (spec + guard test so it can never regress); Agentic-Agile captures the partnership lesson (retro + escaped-defect metric). Run them together.', ['verdict','aos_revise','aa_retro'], []),
+    ],
+  },
+};
+
+const TAG_COLOR = { H:'#ff8c1a', A:'#b366ff', S:'#3ddc84', G:'#4da6ff', M:'#3dc8d4', W:'#7a8294', F:'#ff5a5f', P:'#3ddc84', V:'#ffd24d' };
+const TAG_LABEL = {
+  H:'H — human / judgment',
+  A:'A — agent execution',
+  S:'S — spec / artifact',
+  G:'G — gate / verification',
+  M:'M — measurement / roadmap',
+  W:'W — runtime / lane',
+  F:'fail',
+  P:'pass',
+  V:'verdict',
+};
+const TAG_TEXT  = { H:'H', A:'A', S:'S', G:'G', M:'M', W:'rt', F:'FAIL', P:'PASS', V:'★' };
+
+function FlowNode({ data }) {
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, data.label.split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(sourceTag, targetTag) {
+  if (sourceTag !== 'W') return TAG_COLOR[sourceTag];
+  if (targetTag !== 'W') return TAG_COLOR[targetTag];
+  return TAG_COLOR.W;
+}
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1200);
+  const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
+  const sc = SCENARIOS[scenario];
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
+
+  useEffect(() => { setStep(-1); setPlaying(false); }, [scenario]);
+
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 80; sy += nd.y + 30; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 600, zoom: 0.8 });
+  }, [step, scenario, follow, hasSteps, setCenter]);
+
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      NODES.forEach(n => ns[n.id] = 'done');
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps]);
+
+  const visualNodeState = (id) => {
+    if (!hasSteps) return 'visible';
+    return nodeState[id];
+  };
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const st = edgeState[e.id];
+    const col = edgeColor(tagById[e.source], tagById[e.target]);
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: st,
+      animated: st === 'active',
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4) },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [edgeState, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this use case.' : `${sc.steps[step].label}`);
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>{ setScenario(k); setSelectedId(null); } },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2000},'0.5×'),
+          h('option',{value:1200},'1×'),
+          h('option',{value:700}, '2×'),
+          h('option',{value:400}, '3×'),
+        ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag tag-'+sel.tag, style:{background:TAG_COLOR[sel.tag]}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', sel.label.replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      h('p', null, sel.info)
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--H)'}}),' H human'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--A)'}}),' A agent'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--S)'}}),' S spec'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--G)'}}),' G gate'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--M)'}}),' M measure'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--W)'}}),' rt runtime'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'#ffd24d'}}),' ★ verdict'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.22 },
+      minZoom:0.12, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
