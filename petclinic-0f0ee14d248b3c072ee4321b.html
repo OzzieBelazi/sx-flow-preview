@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>PetClinic — preferred_vet feature, full lifecycle</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    --A:#ff8c1a; --B:#b366ff; --X:#4da6ff; --Y:#3ddc84; --R:#7a8294; --F:#ff5a5f; --P:#3ddc84;
+    --accent:#4da6ff;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 130px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--Y),var(--X),var(--B));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:300px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:140px;max-width:230px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;position:relative;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-A{border-color:var(--A);} .tag-A{background:var(--A);}
+  .node-B{border-color:var(--B);} .tag-B{background:var(--B);}
+  .node-X{border-color:var(--X);} .tag-X{background:var(--X);}
+  .node-Y{border-color:var(--Y);} .tag-Y{background:var(--Y);}
+  .node-R{border-color:var(--R);} .tag-R{background:var(--R);}
+  .node-F{border-color:var(--F);} .tag-F{background:var(--F);color:#fff;}
+  .node-P{border-color:var(--P);} .tag-P{background:var(--P);}
+  .node-pending{opacity:.25;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  .node-done::after{content:"✓";position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--P);color:#0f1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.18;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
+    .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
+const h = React.createElement;
+
+const N = (id, tag, label, x, y, w, info) => ({ id, tag, label, x, y, w, info });
+
+// CONCRETE EXAMPLE — spring-petclinic, the "preferred_vet" feature (the one
+// run through this pipeline 8× during testing). Real values throughout:
+// Maven build, github-actions CI, the actual files the implementer touched.
+// Single-repo; the verify stage shows 1 repo × 4 verifiers = 4 cells.
+// The polyNote node shows how a 2nd repo doubles that to 8 (D5).
+const NODES = [
+  // ─── PROJECT INIT + DISCOVERY (D8) ───
+  N('init',    'X', '/projects/init',           400,    0, 180, 'Operator CLI. Clones github.com/spring-projects/spring-petclinic into the workspace. One-off per project.'),
+  N('disc',    'Y', 'discovery @ init (D8)',    400,   95, 200, 'Runs once after clone. Mechanical scan finds pom.xml + build.gradle + mvnw + gradlew + 3 .github/workflows. LLM (hypothesis→probe→assess, reuses discovery_loop.py) resolves: build_tool=maven (maven-build.yml is the PR gate), inline = ./mvnw -B test + ./mvnw -B checkstyle:check, ci = github-actions.'),
+  N('cache',   'R', 'discovery-cache.yaml',     400,  190, 200, 'Per-repo cache, keyed by discovered_at_sha. Holds the resolved verifier manifest. Reused until a build/CI/lint path changes.'),
+
+  // ─── GIT-CHANGE GATE before shape-spec (D8.1a) ───
+  N('gate8',   'A', 'git change gate (D8.1a)',  400,  290, 210, 'Fires BEFORE /shape-spec — the primary checkpoint. git diff --name-only <discovered_at_sha> HEAD -- pom.xml build.gradle .github/workflows/ … . Empty → reuse cache (no LLM). Changed → re-discover once. shape-spec is about to describe a new change, so the baseline of what is wired up must be current.'),
+
+  // ─── SDD LIFECYCLE (Y) ───
+  N('shape',   'Y', '/shape-spec',              400,  390, null, 'Agent slash command. Conversational: "add a preferred_vet field to Owner; pick from existing Vets; show on owner detail page; editable on the edit form." Writes spec.md + requirements.md (answers captured verbatim).'),
+  N('tasks',   'Y', '/create-tasks',            400,  480, null, 'Splits the spec into task groups. Single repo here, so groups tag [@repo:spring-petclinic]. e.g. "Database & entity", "Controller & vet population", "Templates", "Integration tests".'),
+  N('rubrics', 'Y', '/create-rubrics',          400,  570, null, 'Writes rubrics/[task-group].md — a pass/fail checklist the rubric-verifier scores against later (so it does not invent criteria at verify time).'),
+  N('orch',    'Y', '/orchestrate',             400,  660, null, 'Compiles orchestration.yml (the task-group DAG). Returns {job_id, status:"running", touched_repos_by_group}. Async.'),
+
+  // ─── SSE live view (D6) ───
+  N('sse',     'X', 'SSE progress stream (D6)', 720,  660, 200, 'GET /api/v2/orchestrations/{job_id}/stream. Built-in, always on. One frame per state-store event — every transition below emits one. Carries cells_done/cells_total. Resumable via ?from_seq.'),
+
+  // ─── RUNTIME spine ───
+  N('sched',   'R', 'scheduler picks group',    400,  760, null, 'Walks the DAG, picks the next unblocked task group.'),
+  N('gate8b',  'A', 'git gate (re-check)',      120,  760, 175, 'D8.1a belt-and-suspenders: gate fires again at orchestration start to catch drift between shaping and running. Still unchanged → reuse cache.'),
+  N('lock',    'R', 'coordination.lock.yaml',   400,  860, 210, 'Pins this run: input SHA (D5) + the discovered verifier manifest (D8.1b: ./mvnw -B test, github-actions/maven-build.yml). Every cell + repair retry reads these frozen commands — fixes the run-6 mvnw/gradlew flip.'),
+  N('vcfg',    'Y', 'verify config (D7)',       720,  860, 180, 'spring-petclinic: verify=true, all 4 verifiers enabled → no cells skipped. (A disabled repo/verifier would seed its cell as `skipped`, excluded from the gate.)'),
+  N('seed',    'R', 'seed cells: 1×4 = 4',      400,  960, 190, 'verdicts table seeds 4 pending cells = 1 repo × {inline, ci-trigger, rubric, observe}. (Polyrepo: ×N repos.)'),
+  N('impl',    'R', 'implementer\n(backend-specialist)', 400, 1060, 210, 'Writes the feature: Owner.java (@ManyToOne Vet preferredVet), OwnerController.java (populateVets), schema.sql ×3 (h2/mysql/postgres, ON DELETE SET NULL), ownerDetails.html + createOrUpdateOwnerForm.html, + OwnerPreferredVet*Tests.java.'),
+  N('precommit','A','.git/hooks/pre-commit',    120, 1160, 175, 'The only [A] surface. Shells `standards-extractor verify --staged` — lint/format/fast checks on the diff before the commit lands.'),
+  N('commit',  'R', 'commit lands',             400, 1160, 200, 'New SHA, with trailers (D1): orchestrate-id, task-group-id, repo=spring-petclinic. These are how the observer correlates CI webhooks back to the cell.'),
+  N('postImpl','B', 'post-implement [B]',       400, 1255, null, 'Orchestration hook. Fires once the commit lands. Tags the PR, posts a thread update.'),
+  N('preVer',  'B', 'pre-verify [B]',           400, 1345, null, 'Fires before verifiers fan out. Warms caches, snapshots baseline metrics.'),
+
+  // ─── VERIFIER FAN — 4 cells (1 repo × 4 verifiers) ───
+  N('inline',  'R', 'inline-runner',            60,  1460, 165, 'Cell (spring-petclinic, inline). SYNC. Shells the pinned ./mvnw -B test + ./mvnw -B checkstyle:check, parses exit code → verdict. Lands in seconds.'),
+  N('ciTrig',  'R', 'ci-trigger-runner',        260, 1460, 170, 'Cell (spring-petclinic, ci-trigger). Dispatches the remote CI via connector and walks away — does NOT wait. Writes `dispatched`; the real verdict lands later via the observer.'),
+  N('conn',    'X', 'connector\ngithub-actions',260, 1570, 185, '[X] sub-surface. workflow_dispatch on maven-build.yml; auth = SPRING-PETCLINIC_GITHUB_TOKEN (D3 {REPO_KEY}_{CONN}_TOKEN). Maps success→pass / failure→fail / timed_out→timeout.'),
+  N('rubricV', 'R', 'rubric-verifier',          520, 1460, 170, 'Cell (spring-petclinic, rubric). SYNC. LLM scores the diff against rubrics/[group].md row by row — structured output, no free-form invention.'),
+  N('observe', 'R', 'observe-runner',           720, 1460, 170, 'Cell (spring-petclinic, observe). ASYNC, long-lived. SonarQube nightly / perf regression. Verdict may land minutes–hours later. This is why the gate can sit partially filled.'),
+
+  // ─── VERDICTS → STATE → GATE ───
+  N('verdict', 'B', 'verdict-landed [B]',       400, 1690, null, 'Fires once per cell as each verdict lands. SSE frame "N of 4 green".'),
+  N('store',   'R', 'state store (jobs.db)',    400, 1780, 210, 'D2. verdicts(orchestration_id, task_group_id, repo, verifier, status). Append-only events; the gate + SSE + hooks all read this.'),
+  N('gate',    'R', 'AND gate (D5)',            400, 1870, 200, '∀ repo ∈ touched_repos · ∀ verifier · status=pass (skipped counts as satisfied). One SQL query: 0 rows NOT IN (pass,skipped) AND none pending.'),
+  N('gateEv',  'B', 'gate-evaluated [B]',       400, 1960, null, 'Fires at the terminal gate decision. Routes pass→advance / fail→repair.'),
+
+  // ─── PASS / DONE ───
+  N('pass',    'P', 'PASS',                     400, 2055, null, 'All 4 cells green.'),
+  N('done',    'B', 'task-group-done [B]',      400, 2150, 210, 'Writes verification/final-verification.md, marks the group complete, SSE frame. Scheduler advances to the next group; DAG exhausted → orchestration reports success:true.'),
+
+  // ─── POLYREPO note ───
+  N('polyNote','R', 'polyrepo → 4N cells',      720, 1460, 180, 'This walk is single-repo (4 cells). Add a frontend repo to the product and the same task group becomes 2×4 = 8 cells; ci-trigger fires each repo\'s own CI with its own token; repair + drift scope to (group, repo). The gate, store, and SSE are unchanged — just more rows.'),
+];
+
+const E = (id, source, target, label) => ({ id, source, target, label });
+const EDGES = [
+  // init + discovery
+  E('a','init','disc'), E('b','disc','cache'), E('c','cache','gate8'),
+  E('d','gate8','shape','re-validate, then shape'),
+  // lifecycle
+  E('e','shape','tasks'), E('f','tasks','rubrics'), E('g','rubrics','orch'),
+  E('h','orch','sse','open stream'),
+  E('i','orch','sched'),
+  E('j','sched','gate8b','re-check'), E('k','gate8b','lock'),
+  E('l','sched','lock'),
+  E('m','lock','vcfg','consult'),
+  E('n','lock','seed'),
+  E('o','seed','impl'),
+  E('p','impl','precommit','on commit'), E('q','precommit','commit'),
+  E('r','impl','commit'),
+  E('s','commit','postImpl'), E('t','postImpl','preVer'),
+  // verifier fan
+  E('u1','preVer','inline'), E('u2','preVer','ciTrig'),
+  E('u3','preVer','rubricV'), E('u4','preVer','observe'),
+  E('v','ciTrig','conn'),
+  // verdicts
+  E('w1','inline','verdict'), E('w2','conn','verdict'),
+  E('w3','rubricV','verdict'), E('w4','observe','verdict'),
+  E('x','verdict','store'),
+  E('y1','store','sse','frame per event'),
+  E('y','store','gate'), E('z','gate','gateEv'),
+  // pass/done
+  E('aa','gateEv','pass','all 4 green'), E('bb','pass','done'),
+];
+
+const S = (label, nodes, edges) => ({ label, nodes, edges });
+const SCENARIOS = {
+  overview: {
+    name:'Overview', sub:'everything',
+    desc:'PetClinic + the preferred_vet feature, end to end. Tap any node for the real command/file detail. Pick "Lifecycle" then ▶ Play to step through it.',
+    steps: null,
+  },
+  lifecycle: {
+    name:'Lifecycle', sub:'init → verified',
+    desc:'The full run for spring-petclinic / preferred_vet. Discovery is pinned at init; the git gate re-validates before shape-spec; the 4 verifier cells fan out; the AND gate passes; verification/final-verification.md is written.',
+    steps: [
+      S('Clone repo — /projects/init',                 ['init'],   ['a']),
+      S('Discovery (D8) — scan pom.xml → ./mvnw test', ['disc'],   ['b']),
+      S('Cache resolved manifest (keyed by SHA)',      ['cache'],  ['c']),
+      S('git change gate before shape-spec — unchanged → reuse', ['gate8'], ['d']),
+      S('/shape-spec — describe preferred_vet → spec.md', ['shape'], ['e']),
+      S('/create-tasks — task groups [@repo:spring-petclinic]', ['tasks'], ['f']),
+      S('/create-rubrics — rubrics/[group].md',        ['rubrics'],['g']),
+      S('/orchestrate — returns job_id (async)',       ['orch'],   ['h','i']),
+      S('SSE stream opens',                            ['sse'],    []),
+      S('Scheduler picks the group',                   ['sched'],  []),
+      S('git gate re-check at orchestration start',    ['gate8b'], ['j','k']),
+      S('coordination.lock pins SHA + ./mvnw test manifest', ['lock'], ['l']),
+      S('verify config (D7) — petclinic enabled',      ['vcfg'],   ['m']),
+      S('seed 4 pending cells (1 repo × 4)',           ['seed'],   ['n']),
+      S('implementer writes Owner.java, schema.sql, templates, tests', ['impl'], ['o']),
+      S('pre-commit hook — verify --staged',           ['precommit'],['p']),
+      S('commit lands (trailers: orchestrate-id, group, repo)', ['commit'], ['q','r']),
+      S('post-implement [B]',                          ['postImpl'],['s']),
+      S('pre-verify [B]',                              ['preVer'], ['t']),
+      S('4 verifier cells fan out',                    ['inline','ciTrig','rubricV','observe'], ['u1','u2','u3','u4']),
+      S('ci-trigger → github-actions connector (token)', ['conn'], ['v']),
+      S('verdicts land per cell → SSE "N of 4 green"', ['verdict'], ['w1','w2','w3','w4','x']),
+      S('state store (jobs.db verdicts)',              ['store'],  ['y','y1']),
+      S('AND gate (D5) — all 4 pass?',                 ['gate'],   ['z']),
+      S('gate-evaluated [B]',                          ['gateEv'], ['aa']),
+      S('PASS',                                        ['pass'],   ['bb']),
+      S('task-group-done → verification/final-verification.md', ['done'], []),
+    ],
+  },
+  verify: {
+    name:'Verify detail', sub:'the 4 cells',
+    desc:'Zoom on the verifier stage. 4 cells = 1 repo × 4 verifiers. Two land synchronously (inline, rubric), one dispatches and exits (ci-trigger), one is fully async (observe). The gate is terminal only when all 4 are in.',
+    steps: [
+      S('pre-verify [B] — cells_total = 4',            ['preVer'], ['t']),
+      S('inline-runner — ./mvnw -B test (sync, seconds)', ['inline'], ['u1']),
+      S('rubric-verifier — score diff vs rubric (sync)', ['rubricV'], ['u3']),
+      S('ci-trigger — dispatch maven-build.yml, walk away', ['ciTrig','conn'], ['u2','v']),
+      S('observe-runner — SonarQube/perf (async, later)', ['observe'], ['u4']),
+      S('each verdict → verdict-landed → store',       ['verdict','store'], ['w1','w2','w3','w4','x','y']),
+      S('AND gate terminal only when all 4 in',        ['gate'],   ['z']),
+      S('polyrepo: a 2nd repo → 8 cells, same machinery', ['polyNote'], []),
+    ],
+  },
+};
+
+const TAG_COLOR = { A:'#ff8c1a', B:'#b366ff', X:'#4da6ff', Y:'#3ddc84', R:'#7a8294', F:'#ff5a5f', P:'#3ddc84' };
+const TAG_LABEL = { A:'A — git hook', B:'B — orchestration hook', X:'X — operator CLI', Y:'Y — agent /slash', R:'runtime', F:'fail', P:'pass' };
+const TAG_TEXT  = { A:'A', B:'B', X:'X', Y:'Y', R:'rt', F:'FAIL', P:'PASS' };
+
+function FlowNode({ data }) {
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 140 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, data.label.split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(sourceTag, targetTag) {
+  if (sourceTag !== 'R') return TAG_COLOR[sourceTag];
+  if (targetTag !== 'R') return TAG_COLOR[targetTag];
+  return TAG_COLOR.R;
+}
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1200);
+  const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
+  const sc = SCENARIOS[scenario];
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
+
+  useEffect(() => { setStep(-1); setPlaying(false); }, [scenario]);
+
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 70; sy += nd.y + 30; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 600, zoom: 0.85 });
+  }, [step, scenario, follow, hasSteps, setCenter]);
+
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      NODES.forEach(n => ns[n.id] = 'done');
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps]);
+
+  const visualNodeState = (id) => hasSteps ? nodeState[id] : 'visible';
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const st = edgeState[e.id];
+    const col = edgeColor(tagById[e.source], tagById[e.target]);
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: st,
+      animated: st === 'active',
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4) },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [edgeState, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this scenario.' : `${sc.steps[step].label}`);
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>{ setScenario(k); setSelectedId(null); } },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2000},'0.5×'),
+          h('option',{value:1200},'1×'),
+          h('option',{value:700}, '2×'),
+          h('option',{value:400}, '3×'),
+        ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag tag-'+sel.tag, style:{background:TAG_COLOR[sel.tag]}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', sel.label.replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      h('p', null, sel.info)
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--Y)'}}),' Y agent /slash'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--X)'}}),' X operator CLI'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--A)'}}),' A git hook'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--B)'}}),' B orch hook'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--R)'}}),' runtime'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.22 },
+      minZoom:0.10, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
