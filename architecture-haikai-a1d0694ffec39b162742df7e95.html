@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=yes" />
+<title>Verification Architecture — TEXT / CODE / GAP + Haikai integration</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css" />
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1b1f29; --panel2:#252b38; --border:#2e3548;
+    --txt:#e8ecf3; --muted:#9aa3b2;
+    /* tag colours */
+    --T:#38bdf8;   /* TEXT     — cyan   (.md / YAML / instruction)  */
+    --C:#8b5cf6;   /* CODE     — purple (deterministic Python/SQL)  */
+    --G:#ef4444;   /* GAP      — red    (unspecified in spec)       */
+    --K:#22c55e;   /* CLOSED   — green  (was a gap, closed by haikai)*/
+    --H:#f97316;   /* HAIKAI   — orange (primitive from haikai)     */
+    --S:#f59e0b;   /* STATE    — amber  (jobs.db)                    */
+    --L:#475569;   /* LAYER    — slate  (group label)                */
+    --accent:#4da6ff;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .tabs{position:absolute;top:8px;left:8px;right:8px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+  .tab{flex:1 1 160px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:13px;cursor:pointer;text-align:center;font-weight:500;line-height:1.2;}
+  .tab:active{transform:scale(.97);}
+  .tab.active{background:linear-gradient(180deg,#3a3f52,#2a2f3e);border-color:#5b6480;box-shadow:inset 0 0 0 1px var(--accent);}
+  .tab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px;}
+
+  .player{position:absolute;top:108px;left:8px;right:8px;z-index:24;background:rgba(15,17,23,.92);backdrop-filter:blur(8px);padding:8px 10px;border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .player .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .btn{min-width:42px;min-height:36px;padding:6px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--txt);font-size:14px;cursor:pointer;font-weight:600;}
+  .btn:active{transform:scale(.96);}
+  .btn.primary{background:linear-gradient(180deg,#3a86ff,#2c6bd9);border-color:#5b9dff;color:#fff;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .player select{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .progress{height:6px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--T),var(--C),var(--H));transition:width .4s ease;}
+  .step-label{font-size:12.5px;color:var(--txt);line-height:1.35;}
+  .step-label .num{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-right:6px;}
+  .scen-desc{font-size:12px;color:var(--muted);line-height:1.35;}
+
+  .legend{position:absolute;bottom:10px;left:8px;z-index:20;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);padding:6px 10px;border:1px solid var(--border);border-radius:10px;font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap;}
+  .legend .chip{display:inline-flex;align-items:center;gap:5px;}
+  .legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .info{position:absolute;right:8px;top:8px;z-index:30;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;max-width:320px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .info h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .info .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;color:#0f1117;}
+  .info p{margin:6px 0 0;color:var(--muted);}
+  .info .close{position:absolute;top:6px;right:8px;background:transparent;border:0;color:var(--muted);font-size:18px;cursor:pointer;}
+
+  .node-box{padding:8px 10px;border-radius:8px;border:1.5px solid;background:var(--panel);color:var(--txt);font-size:12px;line-height:1.25;min-width:150px;max-width:260px;text-align:center;cursor:pointer;transition:opacity .25s,filter .25s,box-shadow .25s;position:relative;}
+  .node-box:hover{filter:brightness(1.15);}
+  .node-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;margin-bottom:4px;color:#0f1117;}
+  .node-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;}
+  .node-sub{font-size:10.5px;color:var(--muted);margin-top:3px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .node-T{border-color:var(--T);} .tag-T{background:var(--T);}
+  .node-C{border-color:var(--C);} .tag-C{background:var(--C);}
+  .node-G{border-color:var(--G);} .tag-G{background:var(--G);color:#fff;}
+  .node-K{border-color:var(--K);} .tag-K{background:var(--K);}
+  .node-H{border-color:var(--H);} .tag-H{background:var(--H);}
+  .node-S{border-color:var(--S);} .tag-S{background:var(--S);}
+  .node-L{border-color:var(--L);background:transparent;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;} .tag-L{background:var(--L);color:#fff;}
+
+  .node-pending{opacity:.18;}
+  .node-active{animation:pulse 1.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(77,166,255,.7);}
+  .node-done{opacity:1;filter:saturate(.85);}
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(77,166,255,.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(77,166,255,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(77,166,255,0);   }
+  }
+  .react-flow__edge.pending path{stroke-opacity:.12;}
+  .react-flow__edge.active path{stroke-width:3px;}
+  .react-flow__edge.done path{stroke-opacity:.95;}
+  .react-flow__attribution{background:transparent!important;color:var(--muted)!important;font-size:10px;}
+  @media (max-width:640px){
+    .tab{flex:1 1 45%;font-size:12.5px;min-height:42px;}
+    .info{max-width:calc(100vw - 16px);}
+    .player{top:104px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "reactflow": "https://esm.sh/reactflow@11.11.4?deps=react@18.3.1,react-dom@18.3.1&bundle"
+  }
+}
+</script>
+<script type="module">
+import React, { useMemo, useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, ReactFlowProvider, Handle, Position, useReactFlow } from 'reactflow';
+const h = React.createElement;
+
+// Structural view of the async-verification spec, split by KIND of code:
+//   T = TEXT   (markdown / YAML / agent-OS instruction)
+//   C = CODE   (deterministic Python / SQL / irreducible I/O)
+//   G = GAP    (not specified in the spec — open design question)
+//   K = CLOSED gap (was a gap; closed by adopting a haikai primitive)
+//   H = HAIKAI primitive — reference from SpecForgeAI/haikai-skills
+//   S = STATE STORE — jobs.db
+//   L = LAYER LABEL (group header, non-interactive)
+//
+// Companion to the diagram-app diagram07 (flow-style scenarios) and
+// diagram10 (TEXT/CODE/GAP without haikai). This single-file build is
+// the "with haikai integration" overlay.
+
+const N = (id, tag, label, x, y, w, info, sub) => ({ id, tag, label, x, y, w, info, sub });
+
+const NODES = [
+  // ─── COLUMN HEADERS ───────────────────────────────────────────────────────
+  N('hdr-T','L','TEXT', 120,  -90, 150, 'Markdown / YAML / agent-OS instruction. Authored, not executed deterministically.'),
+  N('hdr-C','L','CODE', 460,  -90, 150, 'Deterministic Python / SQL / irreducible I/O. Where guards and invariants live.'),
+  N('hdr-G','L','GAP',  800,  -90, 150, 'Not specified in the spec. Open design questions still to write.'),
+  N('hdr-H','L','HAIKAI', 1140, -90, 170, 'Primitives from SpecForgeAI/haikai-skills — agentic patterns (subagent-dispatch, /haikai:fix, /haikai:reason …).'),
+
+  // ═══ ENTRY ═════════════════════════════════════════════════════════════════
+  N('lbl-entry','L','ENTRY · slice 1',  -240, 30, 200, 'Command surface: how a /verify-task-group run starts.'),
+  N('entry-T', 'T','Commands (.md)',          120, 30, 200,
+    'Two slash commands: /verify-task-group.md (entry into the loop) and /create-rubrics.md (offline rubric authoring).',
+    '/verify-task-group.md  ·  /create-rubrics.md'),
+  N('entry-C', 'C','Dispatcher',              460, 30, 180,
+    'Registers the commands and handles fresh re-entry from the inbound-gateway (D10.2).',
+    'command registration  ·  fresh re-entry'),
+
+  // ═══ ORCHESTRATOR LOOP ═════════════════════════════════════════════════════
+  N('lbl-loop','L','ORCHESTRATOR LOOP · S1 (.py) → S4 (.md)', -240, 190, 280, 'The judgment layer. Decides advance / repair / wait. Python in slice 1, promoted to a markdown agent at slice 4.'),
+  N('loop-T',  'T','verification-loop.md',    120, 190, 200,
+    'Agent .md. Reads partial state, dispatches verifiers, decides what happens next. Active from slice 4 onward.',
+    'advance · repair · wait'),
+  N('loop-C',  'C','verification_loop.py',    460, 190, 200,
+    'Slice-1 substitute — ~60 LOC Python. Calls one verifier, evaluates the AND gate, calls advance. Replaced by loop-T at slice 4.',
+    '~60 LOC · S1 substitute'),
+  N('loop-G',  'G','cancellation semantics',  800, 190, 220,
+    'Open gap. What happens on Ctrl-C / parent abort? In-flight cells? Dangling lease? Queued inbound events? Spec is silent.',
+    'Ctrl-C · parent abort'),
+  N('h-dispatch','H','subagent-dispatch.md',  1140, 190, 220,
+    'Haikai shared reference. Spells out: depth=1 spawning, the agent decides count (cap 100), prompt skeleton with accumulated retry feedback. Verification loop should cite this rather than reinvent the protocol.',
+    'depth=1 · agent-decides count · retry feedback'),
+  N('h-scen', 'H','/haikai:scenario',         1140, 330, 220,
+    'Edge-case enumeration from a seed. Could systematically generate the cancellation matrix (mid-loop abort, in-flight cells, queued events, dangling lease) the spec currently waves at.',
+    'enumerate cancellation matrix'),
+
+  // ═══ VERIFIERS (3 parallel) ════════════════════════════════════════════════
+  N('lbl-verif','L','VERIFIERS · S1 inline · S2 rubric · S4 ci/observe', -240, 490, 320, 'Per-cell verifiers. The spec fans out per (repo × verifier) — diagram shows one verifier per kind.'),
+  // inline
+  N('v-inline-T','T','inline-runner.md',      60,  490, 195,
+    'Agent .md. Picks the inline tool, parses output, maps exit code → verdict. Ships in slice 1.',
+    'tool · parse · exit→verdict'),
+  N('v-inline-C','C','inline shell-out',      60,  620, 195,
+    'subprocess wrapper, stdout/stderr capture. The irreducible I/O behind inline-runner.',
+    'subprocess · capture'),
+  // rubric
+  N('v-rubric-T','T','rubric-verifier.md',    420, 490, 200,
+    'Agent .md. Scores diff against rubric.md rows. LLM judgment.',
+    'score rubric rows'),
+  N('v-rubric-K','K','agreement strategy (closed)',420, 620, 240,
+    'Was a GAP — spec did not say how to handle LLM variance: k-of-n vote? temp=0? threshold? CLOSED by adopting /haikai:reason as the agreement protocol.',
+    'closed by /haikai:reason'),
+  N('h-reason','H','/haikai:reason',          1140, 555, 220,
+    'Adversarial generate → critique → synthesize → judge with per-role visibility matrix. The exact agreement strategy the rubric verifier needs — N generators score, critic flags weak scores, judge issues the cell verdict.',
+    'N gen · critic · judge'),
+  // ci / observe
+  N('v-ci-C','C','CI POST · webhook consumer',780, 490, 230,
+    'Irreducible I/O. Dispatches CI (workflow_dispatch) and consumes the inbound-gateway verdict callback. No agent.',
+    'dispatch CI · receive verdict'),
+  N('v-ci-G','G','in-flight cell cancel',     780, 620, 220,
+    'Open gap. When the parent orchestration aborts mid-run, what happens to ci-trigger cells already dispatched and observe cells still waiting on a CI webhook? Not specified.',
+    'parent abort → dangling cells'),
+
+  // ═══ STATE STORE  ══════════════════════════════════════════════════════════
+  N('lbl-state','L','STATE STORE · jobs.db · slice 1', -240, 830, 280, 'D2. Append-only verdicts + task_group_state. All invariants enforced here via guarded write tools.'),
+  N('state-T', 'T','Rubric .md files',        120, 830, 200,
+    'One rubric.md per task group, written by /create-rubrics. Read by rubric-verifier at scoring time so it does not invent criteria.',
+    'one per task group'),
+  N('state-S', 'S','jobs.db',                 460, 830, 220,
+    'verdicts · task_group_state · cells · events · leases — with `repo` column baked in from slice 1 (cheap now, expensive to retrofit). Guarded writes enforce UNIQUE(orch,group) + count==0 invariants in-transaction.',
+    'schema + guarded writes + AND-gate SQL'),
+
+  // ═══ ASYNC / CI ════════════════════════════════════════════════════════════
+  N('lbl-async','L','ASYNC / CI · slice 4 (the big jump)', -240, 990, 320, 'Inbound-gateway + the five D10.x decisions. Pure infra — no agent layer here.'),
+  N('async-T', 'T','hooks-design.md',         120, 990, 200,
+    'Contract doc. 9 orchestration events emitted across the verification lifecycle. Consumed by SSE projector and external hook listeners.',
+    '9-event contract'),
+  N('async-C', 'C','Inbound gateway (FastAPI)',460, 990, 240,
+    'Stable webhook URL. HMAC verify + dedup window + SHA→cell binding (D10.4) + TTL sweeper (D10.5) + single-flight lease (D10.6). The runtime′s only async-ingest piece.',
+    'HMAC · D10.4 · D10.5 · D10.6'),
+
+  // ═══ REPAIR ════════════════════════════════════════════════════════════════
+  N('lbl-repair','L','REPAIR · slice 5 · feature-flagged', -240, 1170, 300, 'The self-repair loop. Classify, dispatch fix-tasks, recheck.'),
+  N('repair-T','T','repair-engine.md + drift-triager.md',120,1170, 280,
+    'Two agents. D4 four-way classifier (flaky / infra / test-wrong / impl-wrong) + observe-drift judgement (regression vs noise).',
+    'D4 classifier · drift triage'),
+  N('repair-C','C','Fix-task dispatcher',     460, 1170, 220,
+    'Builds mini-spec, calls /orchestrate, applies per-cell + per-job attempt caps. Currently invents its own fan-out logic — should delegate to /haikai:fix.',
+    'mini-spec · /orchestrate · caps'),
+  N('repair-G','G','per-job repair budget',   800, 1170, 220,
+    'Open gap. Per-cell caps exist (2+2). Wide failure across 5 cells = 20 fix-task spawns. No global budget per orchestration. Should be both per-cell AND per-job.',
+    'only per-cell exists'),
+  N('h-fix',  'H','/haikai:fix',              1140, 1100, 220,
+    'Iterative error repair with one worktree per independent error group + retry-feedback accumulation (ALL prior failures, not just last). This IS the fix-task dispatcher the spec hand-waves. Drop the custom builder and invoke haikai:fix instead.',
+    'worktree-per-group · retry feedback'),
+  N('h-debug','H','/haikai:debug',            1140, 1240, 220,
+    'Bug-hunting loop with feedback-loop gate. The D4 classifier (flaky / infra / test-wrong / impl-wrong) maps onto haikai:debug′s shape — could be the underlying skill the classifier wraps.',
+    'D4 classifier shape'),
+  N('h-predict','H','/haikai:predict',        1140, 1380, 220,
+    'Multi-persona pre-analysis swarm. drift-triager.md needs exactly this: N personas argue whether observe-drift is a real regression or CI noise. Vote → verdict.',
+    'N personas vote'),
+
+  // ═══ DISCOVERY ════════════════════════════════════════════════════════════
+  N('lbl-disc','L','DISCOVERY · slice 7 · side-channel', -240, 1500, 300, 'Resolves which command verifiers actually shell. Runs once at /projects/init, cached, git-invalidated.'),
+  N('disc-T', 'T','discovery-interpreter.md + create-rubrics-agent.md',120,1500, 320,
+    'Two agents. Interpret the file-inventory into a verification plan, and generate per-task-group rubric .md files from spec + standards.',
+    'inventory → plan · rubric gen'),
+  N('disc-C', 'C','Inventory + git-diff gate',460, 1500, 240,
+    'File walker, git-diff change gate (D8.1a), cache + lock pinning. The mechanical side-channel — runs before the LLM does anything.',
+    'walk · D8.1a · cache + lock'),
+  N('disc-G', 'G','build-tool allow-list',    800, 1500, 240,
+    'Open gap. Currently hardcoded: pom.xml, build.gradle, package.json, .github/workflows/**. Bazel/Buck/Pants/Earthly/Nix users get cache-staleness. Needs an extension point in product standards.',
+    'Bazel · Buck · Pants · Earthly · Nix'),
+  N('h-learn','H','/haikai:learn',            1140, 1500, 220,
+    'Codebase documentation engine — parallel Explore readers + a docs-manager generator. The discovery-interpreter pattern is the same shape. Reuse the parallel-reader dispatch.',
+    'parallel readers · docs-manager'),
+
+  // ═══ CONFIG / STANDARDS ════════════════════════════════════════════════════
+  N('lbl-config','L','CONFIG / STANDARDS · cross-cutting', -240, 660, 260, 'Static configuration + the product-standards rubric/template. Cross-cuts every layer.'),
+  N('cfg-T', 'T','coordination.yaml + standards', -240, 700, 260,
+    'Per-repo verify: block (D7 enable/disable), rubric template + scoring threshold default, spec.md (the 1113-line design doc itself), impl-report.md (existing).',
+    'verify: · rubric template · spec.md'),
+  N('cfg-C', 'C','YAML loader',               -240, 830, 260,
+    'Schema validation, defaults. Boring code.',
+    'schema validation'),
+  N('h-rubrics-fmt','H','rubrics format convention', 1140, 765, 240,
+    'haikai documents a rubrics directory shape: When to invoke · How to report · paired detect/fix digraphs · qualitative signals (no numeric thresholds). /create-rubrics should adopt this exact shape so rubrics speak the same dialect across projects.',
+    'When · How · digraphs · qualitative'),
+
+  // ═══ OBSERVABILITY ═════════════════════════════════════════════════════════
+  N('lbl-obs','L','OBSERVABILITY · slice 6 · read-side', 1340, 990, 280, 'Read-side projection of the event log. Ships parallel to S4/S5, no write path overlap.'),
+  N('obs-T', 'T','flow-diagram.html + decision log', 1340, 1040, 280,
+    'Walkthroughs (this file + petclinic lifecycle) + the D1–D10.7 decision log. Text artefacts.',
+    'walkthroughs · D1–D10.7'),
+  N('obs-C', 'C','SSE + 9-event emitter',     1340, 1180, 280,
+    '/api/v2/orchestrations/{job_id}/stream SSE endpoint, event-log → progress-frame projector, orchestrator-side hook emitter for the 9 hooks-design events.',
+    'SSE · projector · emitter'),
+  N('obs-G', 'G','operator ack for `verify: false`', 1340, 1320, 280,
+    'Open gap. SSE surfaces D7 skips but humans miss notifications. No explicit gate to confirm "you are about to run with 2 repos skipped." Silent-skip footgun.',
+    'humans miss SSE'),
+
+  // ═══ SPEC AUTHORING (author-time only) ════════════════════════════════════
+  N('lbl-auth','L','SPEC AUTHORING · author-time, not runtime', 1340, -90, 320, 'Where /haikai:grill and /haikai:security should plug in — they shape the spec BEFORE the runtime ever sees it.'),
+  N('h-grill','H','/haikai:grill',            1340, -30, 240,
+    'Stress-test a plan against the codebase + docs — clarifies terms, finds gaps where the design does not match what is built. Would have driven decisions D8/D8.1a/D10.2 more efficiently than the manual back-and-forth that actually wrote them.',
+    'plan vs codebase + docs'),
+  N('h-sec','H','/haikai:security',           1340, 110, 240,
+    'STRIDE + OWASP + 4-persona red-team. D10.4 (SHA→cell binding, the RCE-shaped one) was the result of *manual* security thinking. haikai:security would have caught it systematically. Wire into spec-authoring, not the runtime gate.',
+    'STRIDE · OWASP · red-team'),
+];
+
+const E = (id, source, target, label, kind) => ({ id, source, target, label, kind });
+const EDGES = [
+  // ─── main spine ───
+  E('e1','entry-T','loop-T',  '', 'T'),
+  E('e2','entry-C','loop-C',  '', 'C'),
+  E('e3','loop-T','v-inline-T',  'dispatch', 'T'),
+  E('e4','loop-T','v-rubric-T',  '', 'T'),
+  E('e5','loop-C','v-inline-C',  '', 'C'),
+  E('e6','loop-C','v-ci-C',      '', 'C'),
+  E('e7','v-inline-C','state-S', 'record_verdict', 'S'),
+  E('e8','v-rubric-T','state-S', '', 'S'),
+  E('e9','v-ci-C','state-S',     '', 'S'),
+  E('e10','state-S','async-C',   '', 'S'),
+  E('e11','async-T','state-S',   '9-event contract', 'T'),
+  E('e12','async-C','repair-C',  'fail → repair', 'G'),
+  E('e13','repair-T','repair-C', '', 'T'),
+  E('e14','repair-C','disc-C',   'side-channel', 'H'),
+
+  // ─── CONFIG feeds ───
+  E('e20','cfg-T','state-S',     'feeds', 'K'),
+  E('e21','cfg-T','loop-T',      '', 'K'),
+  E('e22','cfg-C','state-S',     '', 'C'),
+
+  // ─── OBSERVABILITY (read-side) ───
+  E('e30','state-S','obs-C',     'read-side', 'H'),
+  E('e31','async-C','obs-C',     '', 'H'),
+  E('e32','obs-T','obs-C',       '', 'T'),
+  E('e33','obs-C','obs-G',       '', 'G'),
+
+  // ─── HAIKAI integrations ───
+  E('h1','h-dispatch','loop-T',   'cite, do not reinvent', 'H'),
+  E('h2','h-scen','loop-G',       'enumerate matrix', 'H'),
+  E('h3','h-reason','v-rubric-K', 'IS the agreement protocol', 'H'),
+  E('h4','h-fix','repair-C',      'replace fix-task builder', 'H'),
+  E('h5','h-debug','repair-T',    'D4 classifier shape', 'H'),
+  E('h6','h-predict','repair-T',  'drift triage swarm', 'H'),
+  E('h7','h-learn','disc-T',      'parallel readers', 'H'),
+  E('h8','h-rubrics-fmt','cfg-T', 'rubrics format', 'H'),
+
+  // ─── GAP markers ───
+  E('g1','loop-C','loop-G',       '', 'G'),
+  E('g2','v-ci-C','v-ci-G',       '', 'G'),
+  E('g3','repair-C','repair-G',   '', 'G'),
+  E('g4','disc-C','disc-G',       '', 'G'),
+];
+
+const TAG_COLOR = { T:'#38bdf8', C:'#8b5cf6', G:'#ef4444', K:'#22c55e', H:'#f97316', S:'#f59e0b', L:'#475569' };
+const TAG_LABEL = {
+  T:'TEXT — markdown / YAML / instruction',
+  C:'CODE — deterministic Python / SQL / I/O',
+  G:'GAP — not specified in the spec',
+  K:'CLOSED — was a gap, closed by haikai',
+  H:'HAIKAI — primitive from SpecForgeAI/haikai-skills',
+  S:'STATE STORE — jobs.db',
+  L:'LAYER LABEL',
+};
+const TAG_TEXT = { T:'TEXT', C:'CODE', G:'GAP', K:'CLOSED', H:'HAIKAI', S:'STORE', L:'LAYER' };
+
+function FlowNode({ data }) {
+  let state = data.state || 'pending';
+  const cls = 'node-box node-' + data.tag + ' node-' + state;
+  const tagCls = 'node-tag tag-' + data.tag;
+  return h('div', { className: cls, style:{ minWidth: data.w || 150 }, onClick:(e)=>{ e.stopPropagation(); data.onSelect(data.nodeId); } },
+    h(Handle, { type:'target', position:Position.Top, style:{ background:'#555' } }),
+    h('div', { className: tagCls }, TAG_TEXT[data.tag] || data.tag),
+    h('div', { className: 'node-label' }, data.label.split('\n').map((l,i)=>h(React.Fragment,{key:i}, i?h('br'):null, l))),
+    data.sub ? h('div', { className: 'node-sub' }, data.sub) : null,
+    h(Handle, { type:'source', position:Position.Bottom, style:{ background:'#555' } })
+  );
+}
+const nodeTypes = { flow: FlowNode };
+
+function edgeColor(kind, sourceTag, targetTag) {
+  // edges may declare a "kind" (T/C/G/K/H/S) which overrides
+  if (kind && TAG_COLOR[kind]) return TAG_COLOR[kind];
+  if (sourceTag && sourceTag !== 'L') return TAG_COLOR[sourceTag];
+  if (targetTag && targetTag !== 'L') return TAG_COLOR[targetTag];
+  return '#7a8294';
+}
+
+const S = (label, nodes, edges) => ({ label, nodes, edges });
+const SCENARIOS = {
+  overview: {
+    name:'Overview', sub:'everything · interactive',
+    desc:'Every layer of the async-verification spec, split into TEXT / CODE / GAP with the haikai column on the right. Tap any node for detail. Open gaps are red; gaps closed by adopting haikai are green.',
+    steps: null,
+  },
+  architecture: {
+    name:'Architecture', sub:'TEXT / CODE / GAP only',
+    desc:'Just the structural split. Step through layer by layer to see how each one mixes markdown agents with deterministic code, and where the open design questions live.',
+    steps: [
+      S('Headers — three columns: TEXT (.md), CODE (Python/SQL), GAP (open)', ['hdr-T','hdr-C','hdr-G'], []),
+      S('ENTRY — commands + dispatcher',          ['lbl-entry','entry-T','entry-C'], ['e1','e2']),
+      S('ORCHESTRATOR LOOP — .py at S1, .md at S4, cancellation GAP',
+        ['lbl-loop','loop-T','loop-C','loop-G'], ['g1']),
+      S('VERIFIERS — inline, rubric, ci/observe — each a mini-cluster',
+        ['lbl-verif','v-inline-T','v-inline-C','v-rubric-T','v-ci-C','v-ci-G'],
+        ['e3','e4','e5','e6','g2']),
+      S('STATE STORE — rubric .md feed in, guarded writes enforce invariants',
+        ['lbl-state','state-T','state-S'], ['e7','e8','e9']),
+      S('ASYNC / CI — inbound gateway + 5 D10.x decisions',
+        ['lbl-async','async-T','async-C'], ['e10','e11']),
+      S('REPAIR — D4 classifier + per-cell caps + per-job budget GAP',
+        ['lbl-repair','repair-T','repair-C','repair-G'], ['e12','e13','g3']),
+      S('DISCOVERY — side-channel, inventory + git-diff gate + build-tool GAP',
+        ['lbl-disc','disc-T','disc-C','disc-G'], ['e14','g4']),
+      S('CONFIG — coordination.yaml feeds state + loop',
+        ['lbl-config','cfg-T','cfg-C'], ['e20','e21','e22']),
+      S('OBSERVABILITY — read-side, parallel to S4/S5, operator-ack GAP',
+        ['lbl-obs','obs-T','obs-C','obs-G'], ['e30','e31','e32','e33']),
+    ],
+  },
+  haikai: {
+    name:'Haikai integration', sub:'where each primitive plugs in',
+    desc:'Walk through the haikai primitives and which layer of the verification spec each one slots into. Three direct wins, two probable, plus the spec-authoring use that does not live at runtime.',
+    steps: [
+      S('subagent-dispatch.md — depth=1, retry-feedback — verification-loop should cite, not reinvent',
+        ['h-dispatch','loop-T'], ['h1']),
+      S('/haikai:reason — generate→critique→synthesize→judge IS the rubric agreement protocol — CLOSES the open gap',
+        ['h-reason','v-rubric-K'], ['h3']),
+      S('/haikai:fix — worktree-per-group + retry-feedback — replaces the custom fix-task builder',
+        ['h-fix','repair-C'], ['h4']),
+      S('/haikai:debug — bug-hunting loop — D4 four-way classifier shape',
+        ['h-debug','repair-T'], ['h5']),
+      S('/haikai:predict — multi-persona swarm — exactly what drift-triager needs',
+        ['h-predict','repair-T'], ['h6']),
+      S('/haikai:learn — parallel readers + docs-manager — discovery-interpreter pattern',
+        ['h-learn','disc-T'], ['h7']),
+      S('haikai rubrics format — /create-rubrics should adopt it so rubrics speak one dialect',
+        ['h-rubrics-fmt','cfg-T'], ['h8']),
+      S('/haikai:scenario — could enumerate the cancellation matrix the spec waves at',
+        ['h-scen','loop-G'], ['h2']),
+      S('Spec authoring (author-time, not runtime) — /haikai:grill stress-tests the plan',
+        ['lbl-auth','h-grill'], []),
+      S('Spec authoring — /haikai:security STRIDE would have driven D10.4 systematically',
+        ['h-sec'], []),
+    ],
+  },
+  gaps: {
+    name:'Gaps', sub:'what is open · what haikai closes',
+    desc:'Five open gaps in the spec. One closed by adopting a haikai primitive directly; one partially addressed (enumeration); three still open. Step through them.',
+    steps: [
+      S('GAP 1 — cancellation semantics (orchestrator loop). Spec is silent.',
+        ['loop-G'], ['g1']),
+      S('… partially closed by /haikai:scenario (enumerate the matrix at author-time)',
+        ['loop-G','h-scen'], ['h2']),
+      S('GAP 2 — rubric agreement strategy (rubric verifier). Was open.',
+        ['v-rubric-K'], []),
+      S('… CLOSED by /haikai:reason — generate→critic→judge IS the protocol',
+        ['v-rubric-K','h-reason'], ['h3']),
+      S('GAP 3 — in-flight cell cancel on parent abort (ci/observe verifier). Still open.',
+        ['v-ci-G'], ['g2']),
+      S('GAP 4 — per-job global repair budget (repair). Per-cell caps exist; no orchestration-wide cap.',
+        ['repair-G'], ['g3']),
+      S('GAP 5 — build-tool allow-list extension point (discovery). Hardcoded today.',
+        ['disc-G'], ['g4']),
+      S('GAP 6 — operator ack for `verify: false` (observability). Humans miss SSE.',
+        ['obs-G'], ['e33']),
+    ],
+  },
+};
+
+function App() {
+  const [scenario, setScenario] = useState('overview');
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1400);
+  const [selectedId, setSelectedId] = useState(null);
+  const [follow, setFollow] = useState(true);
+  const { setCenter } = useReactFlow();
+  const sc = SCENARIOS[scenario];
+  const hasSteps = !!sc.steps;
+  const total = hasSteps ? sc.steps.length : 0;
+  const tagById = useMemo(()=> Object.fromEntries(NODES.map(n=>[n.id,n.tag])), []);
+
+  useEffect(() => { setStep(-1); setPlaying(false); }, [scenario]);
+
+  useEffect(() => {
+    if (!playing || !hasSteps) return;
+    if (step >= total - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setStep(s => Math.min(total - 1, s + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, step, total, hasSteps, speed]);
+
+  useEffect(() => {
+    if (!follow || !hasSteps || step < 0) return;
+    const ids = sc.steps[step].nodes || [];
+    if (!ids.length) return;
+    let sx = 0, sy = 0, n = 0;
+    ids.forEach(id => {
+      const nd = NODES.find(x => x.id === id);
+      if (nd) { sx += nd.x + 80; sy += nd.y + 35; n++; }
+    });
+    if (n > 0) setCenter(sx/n, sy/n, { duration: 700, zoom: 0.75 });
+  }, [step, scenario, follow, hasSteps, setCenter]);
+
+  const { nodeState, edgeState } = useMemo(() => {
+    const ns = {}; const es = {};
+    if (!hasSteps) {
+      NODES.forEach(n => ns[n.id] = 'done');
+      EDGES.forEach(e => es[e.id] = 'done');
+    } else {
+      NODES.forEach(n => ns[n.id] = 'pending');
+      EDGES.forEach(e => es[e.id] = 'pending');
+      if (step >= 0) {
+        for (let i = 0; i < step; i++) {
+          (sc.steps[i].nodes || []).forEach(id => ns[id] = 'done');
+          (sc.steps[i].edges || []).forEach(id => es[id] = 'done');
+        }
+        (sc.steps[step].nodes || []).forEach(id => ns[id] = 'active');
+        (sc.steps[step].edges || []).forEach(id => es[id] = 'active');
+      }
+    }
+    return { nodeState: ns, edgeState: es };
+  }, [scenario, step, hasSteps]);
+
+  const visualNodeState = (id) => hasSteps ? nodeState[id] : 'visible';
+
+  const nodes = useMemo(() => NODES.map(n => ({
+    id: n.id, type:'flow', position:{ x:n.x, y:n.y },
+    data: { tag:n.tag, label:n.label, sub:n.sub, w:n.w, state: visualNodeState(n.id), nodeId:n.id, onSelect:setSelectedId },
+    draggable: true,
+  })), [nodeState, hasSteps]);
+
+  const edges = useMemo(() => EDGES.map(e => {
+    const st = edgeState[e.id];
+    const col = edgeColor(e.kind, tagById[e.source], tagById[e.target]);
+    const isHaikai = e.kind === 'H';
+    return {
+      id:e.id, source:e.source, target:e.target, label:e.label,
+      className: st,
+      animated: st === 'active' || isHaikai,
+      markerEnd:{ type:MarkerType.ArrowClosed, color:col, width:18, height:18 },
+      style:{ stroke:col, strokeWidth: st === 'active' ? 3 : (st === 'done' ? 2 : 1.4), strokeDasharray: e.kind === 'G' ? '4 3' : undefined },
+      labelStyle:{ fill:'#e8ecf3', fontSize:10 },
+      labelBgStyle:{ fill:'#1b1f29' }, labelBgPadding:[4,2], labelBgBorderRadius:4,
+    };
+  }), [edgeState, tagById]);
+
+  const sel = selectedId ? NODES.find(n=>n.id===selectedId) : null;
+
+  const onPlay = () => {
+    if (!hasSteps) return;
+    if (step >= total - 1) setStep(0);
+    else if (step < 0) setStep(0);
+    setPlaying(true);
+  };
+  const onPause = () => setPlaying(false);
+  const onReset = () => { setPlaying(false); setStep(-1); };
+  const onPrev = () => { setPlaying(false); setStep(s => Math.max(0, (s < 0 ? 0 : s - 1))); };
+  const onNext = () => { setPlaying(false); setStep(s => Math.min(total - 1, s + 1)); };
+
+  const progressPct = !hasSteps ? 100 : (step < 0 ? 0 : ((step + 1) / total) * 100);
+  const stepLabel = !hasSteps
+    ? 'Tap any node to inspect it.'
+    : (step < 0 ? 'Ready. Tap ▶ to step through this scenario.' : `${sc.steps[step].label}`);
+
+  return h(React.Fragment, null,
+    h('div', { className:'tabs' },
+      Object.entries(SCENARIOS).map(([k,v]) =>
+        h('button', { key:k, className:'tab' + (k===scenario?' active':''), onClick:()=>{ setScenario(k); setSelectedId(null); } },
+          v.name, h('small', null, v.sub)
+        )
+      )
+    ),
+    h('div', { className:'player' },
+      h('div', { className:'scen-desc' }, sc.desc),
+      h('div', { className:'row' },
+        playing
+          ? h('button', { className:'btn primary', onClick:onPause, disabled:!hasSteps }, '⏸ Pause')
+          : h('button', { className:'btn primary', onClick:onPlay, disabled:!hasSteps }, '▶ Play'),
+        h('button', { className:'btn', onClick:onPrev, disabled:!hasSteps || step <= 0 }, '⏮'),
+        h('button', { className:'btn', onClick:onNext, disabled:!hasSteps || step >= total - 1 }, '⏭'),
+        h('button', { className:'btn', onClick:onReset, disabled:!hasSteps || step < 0 }, '⟲'),
+        h('select', { value:speed, onChange:(e)=>setSpeed(parseInt(e.target.value,10)) },
+          h('option',{value:2200},'0.5×'),
+          h('option',{value:1400},'1×'),
+          h('option',{value:800}, '2×'),
+          h('option',{value:450}, '3×'),
+        ),
+        h('button', { className:'btn' + (follow?' primary':''), onClick:()=>setFollow(f=>!f), title:'Auto-pan to follow active step' }, follow ? '👁 Follow' : '👁 Off'),
+        h('div', { style:{flex:1,minWidth:80} }),
+        hasSteps && h('div', { className:'step-label' },
+          h('span',{className:'num'}, (step<0?0:step+1) + '/' + total),
+          stepLabel
+        ),
+        !hasSteps && h('div', { className:'step-label' }, stepLabel),
+      ),
+      h('div', { className:'progress' }, h('div', { style:{ width: progressPct + '%' } }))
+    ),
+    sel && h('div', { className:'info' },
+      h('button',{className:'close',onClick:()=>setSelectedId(null)},'×'),
+      h('h4', null,
+        h('span',{className:'tag tag-'+sel.tag, style:{background:TAG_COLOR[sel.tag]}}, TAG_TEXT[sel.tag] || sel.tag),
+        ' ', sel.label.replace(/\n/g,' ')
+      ),
+      h('div', { style:{fontSize:11,color:'var(--muted)',marginTop:2} }, TAG_LABEL[sel.tag]),
+      h('p', null, sel.info)
+    ),
+    h('div', { className:'legend' },
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--T)'}}),' TEXT (.md/YAML)'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--C)'}}),' CODE (Python/SQL)'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--S)'}}),' STATE (jobs.db)'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--G)'}}),' GAP (open)'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--K)'}}),' CLOSED (by haikai)'),
+      h('span',{className:'chip'}, h('span',{className:'dot',style:{background:'var(--H)'}}),' HAIKAI primitive'),
+    ),
+    h(ReactFlow, {
+      nodes, edges, nodeTypes,
+      fitView:true, fitViewOptions:{ padding:0.20 },
+      minZoom:0.08, maxZoom:1.5,
+      onPaneClick:()=>setSelectedId(null),
+      panOnScroll:false, zoomOnPinch:true, panOnDrag:true,
+      proOptions:{ hideAttribution:false },
+    },
+      h(Background, { color:'#2b3142', gap:24, size:1 }),
+      h(Controls, { showInteractive:false }),
+      h(MiniMap, { pannable:true, zoomable:true, maskColor:'rgba(15,17,23,.7)', nodeColor:(n)=>TAG_COLOR[n.data?.tag] || '#888', style:{ background:'#1b1f29', border:'1px solid var(--border)' } })
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  h(ReactFlowProvider, null, h(App))
+);
+</script>
+</body>
+</html>
